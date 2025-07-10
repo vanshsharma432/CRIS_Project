@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
-
 import 'widgets/train_request_card.dart';
+import 'widgets/train_request_list_view.dart';
 import 'widgets/select_columns_widget.dart';
+import 'widgets/search_filter_row.dart';
 import 'widgets/train_request_card_parts.dart';
 import 'widgets/pre_screen_bar.dart';
-
 import 'theme/colors.dart';
 import 'theme/text_styles.dart';
 import 'constants/strings.dart';
@@ -34,7 +33,8 @@ class MyApp extends StatelessWidget {
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: AColors.brandeisBlue,
-          titleTextStyle: ATextStyles.headingMedium.copyWith(color: AColors.white),
+          titleTextStyle:
+              ATextStyles.headingMedium.copyWith(color: AColors.white),
           iconTheme: const IconThemeData(color: AColors.white),
         ),
         checkboxTheme: CheckboxThemeData(
@@ -47,20 +47,62 @@ class MyApp extends StatelessWidget {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key}); // ✅ fixed constructor
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final _pnrController = TextEditingController();
+  final _trainNoController = TextEditingController();
+  final _divisionController = TextEditingController();
+  final _statusController = TextEditingController();
+  final _requestedByController = TextEditingController();
+
+  final List<TextEditingController> _headerSearchControllers =
+      List.generate(8, (_) => TextEditingController()); // ✅ only one declaration
+
   List<String> selectedColumns = List.from(AStrings.allColumns);
   bool isPreScreenSubmitted = false;
+  int? activeSearchColumn; // index of active heading being searched
 
   @override
   void initState() {
     super.initState();
-    selectedColumns = List.from(AStrings.allColumns);
+      for (var controller in _headerSearchControllers) {
+    controller.addListener(() => setState(() {}));
+  }
+
+    _pnrController.addListener(() => setState(() {}));
+    _trainNoController.addListener(() => setState(() {}));
+    _divisionController.addListener(() => setState(() {}));
+    _statusController.addListener(() => setState(() {}));
+    _requestedByController.addListener(() => setState(() {}));
+  }
+
+  List<TrainRequest> get filteredRequests {
+    return trainRequests.where((request) {
+      return request.pnr
+              .toString()
+              .contains(_headerSearchControllers[0].text) &&
+          request.trainStartDate
+              .toString()
+              .contains(_headerSearchControllers[1].text) &&
+          request.trainNo
+              .toString()
+              .contains(_headerSearchControllers[2].text) &&
+          request.division
+              .toLowerCase()
+              .contains(_headerSearchControllers[3].text.toLowerCase()) &&
+          request.requestedBy
+              .toLowerCase()
+              .contains(_headerSearchControllers[5].text.toLowerCase()) &&
+          request.currentStatus
+              .toLowerCase()
+              .contains(_headerSearchControllers[6].text.toLowerCase());
+      // Skipping columns 4 (passenger counts) and 7 (edit)
+    }).toList();
   }
 
   void onColumnSelectionChanged(List<String> columns) {
@@ -79,8 +121,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       isPreScreenSubmitted = true;
     });
-
-    // You can use these submitted values as needed
   }
 
   @override
@@ -91,7 +131,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Column(
         children: [
-          /// ✅ PreScreenBar shown always
           PreScreenBar(onSubmit: _onPreScreenSubmit),
 
           if (isPreScreenSubmitted)
@@ -102,37 +141,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   return Column(
                     children: [
-                      if (isDesktop) const DesktopHeaderRow(),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: trainRequests.length,
-                          itemBuilder: (context, index) {
-                            final request = trainRequests[index];
+                      if (isDesktop)
+              DesktopHeaderRow(
+                activeSearchColumn: activeSearchColumn,
+                headerControllers: _headerSearchControllers,
+                onColumnTapped: (index) {
+                  setState(() {
+                    activeSearchColumn = activeSearchColumn == index ? null : index;
+                  });
+                },
+              ),
 
-                            return TrainRequestCard(
-                              request: request,
-                              onSelectionChanged: (bool? newValue) {
-                                setState(() {
-                                  final updated = request.copyWith(isSelected: newValue ?? false);
-                                  _updateTrainRequest(updated);
-                                });
-                              },
-                              onPriorityChanged: (int newPriority) {
-                                setState(() {
-                                  final updated = request.copyWith(priority: newPriority);
-                                  _updateTrainRequest(updated);
-                                });
-                              },
-                              onRejected: () {
-                                setState(() {
-                                  final updated = request.copyWith(currentStatus: "Rejected");
-                                  _updateTrainRequest(updated);
-                                });
-                              },
-                            );
-                          },
+                      // Expanded(
+                      //   child: ListView.builder(
+                      //     itemCount: filteredRequests.length,
+                      //     itemBuilder: (context, index) {
+                      //       final request = filteredRequests[index];
+
+                      //       return TrainRequestCard(
+                      //         request: request,
+                      //         onSelectionChanged: (bool? newValue) {
+                      //           setState(() {
+                      //             final updated = request.copyWith(
+                      //                 isSelected: newValue ?? false);
+                      //             _updateTrainRequest(updated);
+                      //           });
+                      //         },
+                      //         onPriorityChanged: (int newPriority) {
+                      //           setState(() {
+                      //             final updated =
+                      //                 request.copyWith(priority: newPriority);
+                      //             _updateTrainRequest(updated);
+                      //           });
+                      //         },
+                      //         onRejected: () {
+                      //           setState(() {
+                      //             final updated = request.copyWith(
+                      //                 currentStatus: "Rejected");
+                      //             _updateTrainRequest(updated);
+                      //           });
+                      //         },
+                      //       );
+                      //     },
+                      //   ),
+                      // ),
+                      Expanded(
+                        child: TrainRequestListView(
+                          allRequests: filteredRequests,
+                          onUpdate: (updated) => _updateTrainRequest(updated),
                         ),
                       ),
+
                     ],
                   );
                 },
@@ -144,7 +203,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _updateTrainRequest(TrainRequest updated) {
-    final indexInMain = trainRequests.indexWhere((r) => r.pnr == updated.pnr);
+    final indexInMain =
+        trainRequests.indexWhere((r) => r.pnr == updated.pnr);
     if (indexInMain != -1) {
       trainRequests[indexInMain] = updated;
     }

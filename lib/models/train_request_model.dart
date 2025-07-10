@@ -15,6 +15,7 @@ class TrainRequest {
   final DateTime lastUpdated;
   final int pnr;
   final int trainNo;
+  final String seatClass;
   final bool isSelected;
 
   // ✅ New field added for Edit
@@ -33,6 +34,7 @@ class TrainRequest {
     required this.destination,
     required this.requestedBy,
     required this.zone,
+    required this.seatClass,
     required this.division,
     required this.lastUpdated,
     required this.pnr,
@@ -78,6 +80,7 @@ class TrainRequest {
       division: division ?? this.division,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       pnr: pnr ?? this.pnr,
+      seatClass: seatClass ?? this.seatClass ,
       trainNo: trainNo ?? this.trainNo,
       isSelected: isSelected ?? this.isSelected,
       priority: priority ?? this.priority,

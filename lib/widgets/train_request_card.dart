@@ -65,22 +65,38 @@ class TrainRequestCard extends StatelessWidget {
             0: FlexColumnWidth(1),   // PNR + Journey Date
             1: FixedColumnWidth(120),// Start Date
             2: FlexColumnWidth(1),   // Train No + Route
-            3: FlexColumnWidth(1),   // Division + Zone
-            4: FixedColumnWidth(160),// Passenger Counts
-            5: FlexColumnWidth(2),   // Requested By
-            6: FixedColumnWidth(100),// Status
-            7: FixedColumnWidth(150),// Edit
+            3:FlexColumnWidth(1),    //Class
+            4: FlexColumnWidth(1),   // Division + Zone
+            5: FixedColumnWidth(160),// Passenger Counts
+            6: FlexColumnWidth(2),   // Requested By
+            7: FixedColumnWidth(100),// Status
+            8: FixedColumnWidth(150),// Edit
           },
           children: [
             TableRow(children: [
               // 1. PNR + Journey Date
-              TableCellText("${request.pnr} (${formatDate(request.trainJourneyDate)})"),
+              // TableCellText("${request.pnr} (${formatDate(request.trainJourneyDate)})"),
+                  InkWell(
+                    onTap: () {
+                      debugPrint("PNR clicked: ${request.pnr}");
+                    },
+                    child: TableCellText(
+                      "${request.pnr} (${formatDate(request.trainJourneyDate)})",
+                      color: AColors.primary,
+                      bold: true,
+                    ),
+                  ),
+
+
 
               // 2. Start Date
               TableCellText(formatDate(request.trainStartDate)),
 
               // 3. Train No + Route
               TableCellText("${request.trainNo} (${request.sourceStation} → ${request.destination})"),
+
+              TableCellText(request.seatClass.toUpperCase()),
+
 
               // 4. Division + Zone
               TableCellText("${request.division} (${request.zone})"),

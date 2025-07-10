@@ -118,16 +118,49 @@ class SelectionCheckbox extends StatelessWidget {
 /// 🧾 Reusable table header cell
 class TableHeaderCell extends StatelessWidget {
   final String text;
-  const TableHeaderCell(this.text, {super.key});
+  final bool isSearching;
+  final TextEditingController controller;
+  final VoidCallback onTap;
+
+  const TableHeaderCell(
+    this.text, {
+    required this.isSearching,
+    required this.controller,
+    required this.onTap,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: ATextStyles.tableHeader,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: ATextStyles.tableHeader.copyWith(
+              color: isSearching ? AColors.primary : AColors.textPrimary,
+              decoration: isSearching ? TextDecoration.underline : null,
+            ),
+          ),
+          if (isSearching)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    border: OutlineInputBorder(),
+                    hintText: 'Search',
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -136,44 +169,76 @@ class TableHeaderCell extends StatelessWidget {
 
 /// 🧩 Reusable table header row for desktop
 class DesktopHeaderRow extends StatelessWidget {
-  const DesktopHeaderRow({super.key});
+  final int? activeSearchColumn;
+  final List<TextEditingController> headerControllers;
+  final void Function(int columnIndex) onColumnTapped;
+
+  const DesktopHeaderRow({
+    super.key,
+    required this.activeSearchColumn,
+    required this.headerControllers,
+    required this.onColumnTapped,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final titles = [
+      AStrings.pnrJourney,
+      AStrings.startDate,
+      AStrings.trainInfo,
+      AStrings.seatClass,
+      AStrings.divisionZone,
+      AStrings.passengers,
+      AStrings.requestedBy,
+      AStrings.status,
+      '', // edit column
+    ];
+
     return Container(
       color: AColors.white,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: Table(
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         columnWidths: const {
-          0: FlexColumnWidth(1),   // PNR + Journey Date
-          1: FixedColumnWidth(120),// Start Date
-          2: FlexColumnWidth(1),   // Train No + Route
-          3: FlexColumnWidth(1),   // Division + Zone
-          4: FixedColumnWidth(160),// Passenger Counts
-          5: FlexColumnWidth(2),   // Requested By
-          6: FixedColumnWidth(100),// Status
-          7: FixedColumnWidth(150), // Edit
+          0: FlexColumnWidth(1),
+          1: FixedColumnWidth(120),
+          2: FlexColumnWidth(1),
+          3: FlexColumnWidth(1),
+          4: FlexColumnWidth(1),
+          5: FixedColumnWidth(160),
+          6: FlexColumnWidth(2),
+          7: FixedColumnWidth(100),
+          8: FixedColumnWidth(150),
         },
-        children: const [
+        children: [
           TableRow(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AColors.borderLight)),
             ),
-            children: [
-              TableHeaderCell(AStrings.pnrJourney),
-              TableHeaderCell(AStrings.startDate),
-              TableHeaderCell(AStrings.trainInfo),
-              TableHeaderCell(AStrings.divisionZone),
-              TableHeaderCell(AStrings.passengers),
-              TableHeaderCell(AStrings.requestedBy),
-              TableHeaderCell(AStrings.status),
-              SizedBox(), // Edit column
-            ],
+            children: List.generate(8, (index) {
+              // Edit column (skip)
+              if (index == 7) return const SizedBox();
+
+              // Passengers column – static, not searchable
+              if (index == 4) {
+                return TableHeaderCell(
+                  AStrings.passengers,
+                  isSearching: false,
+                  controller: TextEditingController(),
+                  onTap: () {},
+                );
+              }
+
+              return TableHeaderCell(
+                titles[index],
+                isSearching: activeSearchColumn == index,
+                controller: headerControllers[index],
+                onTap: () => onColumnTapped(index),
+              );
+            }),
           ),
         ],
       ),
     );
   }
 }
-

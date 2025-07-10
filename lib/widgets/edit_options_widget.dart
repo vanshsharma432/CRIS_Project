@@ -20,8 +20,7 @@ class EditOptionsWidget extends StatefulWidget {
 }
 
 class _EditOptionsWidgetState extends State<EditOptionsWidget> {
-  bool showDropdown = false;
-  bool showPriorityEditor = false;
+  bool showActions = false;
   bool isSaved = false;
 
   late TextEditingController _priorityController;
@@ -29,7 +28,9 @@ class _EditOptionsWidgetState extends State<EditOptionsWidget> {
   @override
   void initState() {
     super.initState();
-    _priorityController = TextEditingController(text: widget.initialPriority.toString());
+    _priorityController = TextEditingController(
+      text: widget.initialPriority.toString(),
+    );
   }
 
   @override
@@ -45,13 +46,11 @@ class _EditOptionsWidgetState extends State<EditOptionsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Edit / Saved button
         TextButton.icon(
           onPressed: () {
             setState(() {
-              showDropdown = !showDropdown;
+              showActions = !showActions;
               isSaved = false;
-              showPriorityEditor = false;
             });
           },
           icon: Icon(
@@ -67,13 +66,14 @@ class _EditOptionsWidgetState extends State<EditOptionsWidget> {
           ),
         ),
 
-        // Dropdown options
-        if (showDropdown && !showPriorityEditor)
+        if (showActions)
           Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             decoration: BoxDecoration(
               color: AColors.white,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black12,
                   blurRadius: 6,
@@ -81,101 +81,85 @@ class _EditOptionsWidgetState extends State<EditOptionsWidget> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildDropdownOption(
-                  icon: Icons.low_priority,
-                  text: "Change Priority",
-                  onTap: () {
-                    setState(() {
-                      showPriorityEditor = true;
-                      showDropdown = false;
-                    });
-                  },
+                // Reject Button (red ❌)
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      widget.onRejected();
+                      setState(() {
+                        showActions = false;
+                        isSaved = true;
+                      });
+                    },
+                    icon: const Icon(Icons.close, size: 16),
+                    color: Colors.white,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    tooltip: 'Reject',
+                  ),
                 ),
-                _buildDropdownOption(
-                  icon: Icons.block,
-                  text: "Reject",
-                  onTap: () {
-                    widget.onRejected();
-                    setState(() {
-                      showDropdown = false;
-                      isSaved = true;
-                    });
-                  },
+                const SizedBox(width: 6),
+
+                // Priority Input
+                SizedBox(
+                  width: isDesktop ? 60 : 50,
+                  child: TextField(
+                    controller: _priorityController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      hintText: "0–3",
+                      hintStyle: ATextStyles.bodySmall.copyWith(color: AColors.gray),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    style: ATextStyles.bodySmall,
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                // Save Button (blue ✔️)
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      final newPriority = int.tryParse(_priorityController.text.trim());
+                      if (newPriority != null) {
+                        widget.onPriorityChanged(newPriority);
+                        setState(() {
+                          isSaved = true;
+                          showActions = false;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.check, size: 16),
+                    color: Colors.white,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    tooltip: 'Save Priority',
+                  ),
                 ),
               ],
             ),
           ),
-
-        // Priority Input UI
-        if (showPriorityEditor)
-          Row(
-            children: [
-              SizedBox(
-                width: isDesktop ? 60 : 50,
-                child: TextField(
-                  controller: _priorityController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    hintText: "0-3",
-                    hintStyle: ATextStyles.bodySmall.copyWith(color: AColors.gray),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  style: ATextStyles.bodySmall,
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  final newPriority = int.tryParse(_priorityController.text.trim());
-                  if (newPriority != null) {
-                    widget.onPriorityChanged(newPriority);
-                    setState(() {
-                      isSaved = true;
-                      showPriorityEditor = false;
-                    });
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                child: Text("Save", style: ATextStyles.buttonSmall.copyWith(color: AColors.white)),
-              ),
-            ],
-          ),
       ],
-    );
-  }
-
-  Widget _buildDropdownOption({
-    required IconData icon,
-    required String text,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(icon, color: AColors.secondary, size: 18),
-            const SizedBox(width: 8),
-            Text(text, style: ATextStyles.bodySmall),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -40,6 +40,7 @@ class AStrings {
   static const minValue = 'Min';
   static const maxValue = 'Max';
   static const pickDate = 'Pick a Date';
+  static const seatClass = 'Class';
 
   // Dynamic text fragments
   static const remarksPrefix = 'Remarks: ';

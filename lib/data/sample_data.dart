@@ -13,7 +13,7 @@ final List<String> remarks = [
 ];
 final List<String> zones = ['NR', 'ER', 'WR', 'SR', 'CR', 'NFR'];
 final List<String> divisions = ['NDLS', 'LKO', 'BPL', 'UMB', 'JBP', 'HWH'];
-
+final List<String> seatClass = ['1A' , '2A', '3A', 'SL', 'GN', '2S', 'CC', 'EC'];
 DateTime randomDate({bool withTime = true}) {
   final now = DateTime.now();
   final rand = Random();
@@ -46,6 +46,7 @@ final List<TrainRequest> trainRequests = List.generate(30, (index) {
     acceptedPassengers: accepted,
     requestedBy: names[rand.nextInt(names.length)],
     zone: zones[rand.nextInt(zones.length)],
+    seatClass: seatClass[rand.nextInt(seatClass.length)],
     division: divisions[rand.nextInt(divisions.length)],
     remarksByRailways: remarks[rand.nextInt(remarks.length)],
     isSelected: false,
