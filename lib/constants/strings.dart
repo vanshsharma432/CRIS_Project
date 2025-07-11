@@ -12,8 +12,6 @@ class AStrings {
   static const requestedBy = 'Requested by (Requested on)';
   static const divisionZone = 'Division (Zone)';
   static const select = 'Select';
-  static const options = 'options';
-
 
   // Data labels for filtering/column selection
   static const totalPassengers = 'Total Passengers';

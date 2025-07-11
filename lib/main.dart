@@ -66,10 +66,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int currentPage = 0;
   final int itemsPerPage = 20;
 
-  int startIndex = 0;
-  int endIndex = 0;
-  int totalCount = 0;
-
   @override
   void initState() {
     super.initState();
@@ -98,26 +94,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String? status,
     String? trainNo,
   }) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          isPreScreenSubmitted = true;
-          currentPage = 0;
-        });
-      }
+    setState(() {
+      isPreScreenSubmitted = true;
     });
   }
 
   void _onPreScreenRefresh() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          isPreScreenSubmitted = true;
-          currentPage = 0;
-          for (var controller in _headerSearchControllers) {
-            controller.clear();
-          }
-        });
+    setState(() {
+      currentPage = 0;
+      for (var controller in _headerSearchControllers) {
+        controller.clear();
       }
     });
   }
@@ -129,28 +115,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _goToPreviousPage() {
-    if (currentPage > 0) {
-      setState(() => currentPage--);
-    }
-  }
-
-  void _goToNextPage() {
-    final totalPages = (totalCount / itemsPerPage).ceil();
-    if (currentPage < totalPages - 1) {
-      setState(() => currentPage++);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final sortProvider = Provider.of<SortProvider>(context);
 
     final sortedRequests = [...filteredRequests]..sort(sortProvider.compare);
 
-    totalCount = sortedRequests.length;
-    startIndex = currentPage * itemsPerPage;
-    endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
     final visibleItems = sortedRequests.skip(startIndex).take(itemsPerPage).toList();
 
     return Scaffold(
@@ -162,11 +132,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           PreScreenBar(
             onSubmit: _onPreScreenSubmit,
             onRefresh: _onPreScreenRefresh,
-            onPreviousPage: _goToPreviousPage,
-            onNextPage: _goToNextPage,
-            startIndex: startIndex,
-            endIndex: endIndex,
-            totalCount: totalCount,
           ),
           if (isPreScreenSubmitted)
             Expanded(
@@ -185,7 +150,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           totalCount: totalCount,
                           onColumnTapped: (index) {
                             setState(() {
-                              activeSearchColumn = activeSearchColumn == index ? null : index;
                             });
 
                             final fieldMap = {
@@ -207,23 +171,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: TrainRequestListView(
                           allRequests: visibleItems,
-                          onUpdate: _updateTrainRequest,
-                          onPaginationChanged: ({
-                            required int startIndex,
-                            required int endIndex,
-                            required int totalCount,
-                          }) {
-                            if (mounted) {
-                              setState(() {
-                                this.startIndex = startIndex;
-                                this.endIndex = endIndex;
-                                this.totalCount = totalCount;
-                              });
-                            }
-                          },
+                            ),
                         ),
-                      ),
-                      // Removed pagination from here
                     ],
                   );
                 },

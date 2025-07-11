@@ -51,7 +51,6 @@ final List<TrainRequest> trainRequests = List.generate(30, (index) {
     remarksByRailways: remarks[rand.nextInt(remarks.length)],
     isSelected: false,
     priority: rand.nextInt(6)+1,
-    eqRequestNo: 'EQ${(index + 1).toString().padLeft(10, '0')}',
   );
 });
 

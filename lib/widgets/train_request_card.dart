@@ -6,7 +6,6 @@ import '../theme/text_styles.dart';
 import '../constants/strings.dart';
 import '../widgets/train_request_card_parts.dart';
 import '../widgets/edit_options_widget.dart'; // Make sure this exists
-import '../services/EQ_request.dart';
 
 class TrainRequestCard extends StatelessWidget {
   final TrainRequest request;
@@ -49,7 +48,6 @@ class TrainRequestCard extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(isDesktop ? 12 : 16),
         child: isDesktop
-            ? _buildDesktopLayout(context , statusColor)
             : _buildMobileLayout(statusColor),
       ),
     );
@@ -57,7 +55,6 @@ class TrainRequestCard extends StatelessWidget {
 
   // ---------------- Desktop Layout ----------------
   // ---------------- Desktop Layout ----------------
-  Widget _buildDesktopLayout(BuildContext context, Color   statusColor) {
     return Column(
       children: [
         Table(
@@ -114,53 +111,6 @@ class TrainRequestCard extends StatelessWidget {
               ),
 
               // 6. Requested By + Requested On
-               GestureDetector(
-                onTap: () async {
-                  // Show loading
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const Center(child: CircularProgressIndicator()),
-                  );
-
-                  try {
-                    final response = await MRApiService.fetchEQRequest("EQ0000000010");
-                    Navigator.pop(context); // Close loading
-
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('EQ Request Info'),
-                        content: Text(response?['message'] ?? 'No data available'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Close"),
-                          ),
-                        ],
-                      ),
-                    );
-                  } catch (e) {
-                    Navigator.pop(context); // Close loading
-                    
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Error'),
-                        content: Text('Failed to load data. Please try again.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("OK"),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                },
-                child: TableCellText("${request.requestedBy} (${request.eqRequestNo}) (${formatDateTime(request.requestedOn)})"),
-              ),
-
 
               // 7. Status
               TableCellText(request.currentStatus.toUpperCase(), color: statusColor),
@@ -170,7 +120,6 @@ class TrainRequestCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: EditOptionsWidget(
                   initialPriority: request.priority,
-                  eqRequestNo: request.eqRequestNo, // Add this line
                   onPriorityChanged: onPriorityChanged,
                   onRejected: onRejected,
                 ),
@@ -294,7 +243,6 @@ class TrainRequestCard extends StatelessWidget {
             ),
             EditOptionsWidget(
               initialPriority: request.priority,
-              eqRequestNo: request.eqRequestNo,
               onPriorityChanged: onPriorityChanged,
               onRejected: onRejected,
             ),
