@@ -201,6 +201,7 @@ class DesktopHeaderRow extends StatelessWidget {
       AStrings.passengers,
       AStrings.requestedBy,
       AStrings.status,
+      AStrings.options, // Pagination column
     ];
 
     final fieldKeys = [
@@ -264,6 +265,7 @@ class DesktopHeaderRow extends StatelessWidget {
                 return Align(
                   alignment: Alignment.center,
                   child: Text(
+                    AStrings.options,
                     textAlign: TextAlign.center,
                     style: ATextStyles.tableHeader.copyWith(
                       color: AColors.textPrimary,

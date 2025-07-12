@@ -16,11 +16,22 @@ class PreScreenBar extends StatefulWidget {
   }) onSubmit;
 
   final VoidCallback? onRefresh;
+  final VoidCallback? onPreviousPage;
+  final VoidCallback? onNextPage;
+
+  final int startIndex;
+  final int endIndex;
+  final int totalCount;
 
   const PreScreenBar({
     super.key,
     required this.onSubmit,
+    required this.startIndex,
+    required this.endIndex,
+    required this.totalCount,
     this.onRefresh,
+    this.onPreviousPage,
+    this.onNextPage,
   });
 
   @override
@@ -59,6 +70,7 @@ class _PreScreenBarState extends State<PreScreenBar> {
 
   Widget _buildDateField(String label, DateTime? value, ValueChanged<DateTime> onPicked) {
     return SizedBox(
+      width: 150,
       child: InkWell(
         onTap: () => _pickDate(currentDate: value, onDatePicked: onPicked),
         child: InputDecorator(
@@ -84,6 +96,7 @@ class _PreScreenBarState extends State<PreScreenBar> {
     required ValueChanged<String?> onChanged,
   }) {
     return SizedBox(
+      width: 130,
       child: DropdownButtonFormField<String>(
         value: value,
         onChanged: onChanged,
@@ -139,104 +152,146 @@ class _PreScreenBarState extends State<PreScreenBar> {
     widget.onRefresh?.call();
   }
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: AColors.white,
         boxShadow: [BoxShadow(color: AColors.shadow, blurRadius: 6)],
         borderRadius: BorderRadius.circular(12),
       ),
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDateField(AStrings.trainStartDate, startDate, (val) {
-            setState(() {
-              startDate = val;
-              journeyDate = null;
-            });
-          }),
-          Text(AStrings.or, style: ATextStyles.bodyText),
-          _buildDateField(AStrings.journeyDate, journeyDate, (val) {
-            setState(() {
-              journeyDate = val;
-              startDate = null;
-            });
-          }),
-          _buildDropdownField(
-            label: AStrings.division,
-            value: selectedDivision,
-            options: divisions,
-            onChanged: (val) {
-              setState(() {
-                selectedDivision = val;
-                selectedZone = null;
-                selectedMp = null;
-              });
-            },
-          ),
-          Text(AStrings.or, style: ATextStyles.bodyText),
-          _buildDropdownField(
-            label: AStrings.zone,
-            value: selectedZone,
-            options: zones,
-            onChanged: (val) {
-              setState(() {
-                selectedZone = val;
-                selectedDivision = null;
-                selectedMp = null;
-              });
-            },
-          ),
-          Text(AStrings.or, style: ATextStyles.bodyText),
-          _buildDropdownField(
-            label: AStrings.userType,
-            value: selectedMp,
-            options: mpOptions,
-            onChanged: (val) {
-              setState(() {
-                selectedMp = val;
-                selectedDivision = null;
-                selectedZone = null;
-              });
-            },
-          ),
-          Text(AStrings.or, style: ATextStyles.bodyText),
-          _buildDropdownField(
-            label: AStrings.status,
-            value: selectedStatus,
-            options: statusOptions,
-            onChanged: (val) => setState(() => selectedStatus = val),
-          ),
-          Text(AStrings.or, style: ATextStyles.bodyText),
-          _buildDropdownField(
-            label: AStrings.trainNo,
-            value: selectedTrainNo,
-            options: trainNoOptions,
-            onChanged: (val) => setState(() => selectedTrainNo = val),
-          ),
-          ElevatedButton(
-            onPressed: _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: Icon(
+                isCollapsed ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                color: AColors.gray,
+              ),
+              onPressed: () => setState(() => isCollapsed = !isCollapsed),
             ),
-            child: Text(AStrings.submit, style: ATextStyles.buttonText.copyWith(color: AColors.white)),
           ),
-          OutlinedButton.icon(
-            onPressed: _handleRefresh,
-            icon: Icon(Icons.refresh, size: 20, color: AColors.brandeisBlue),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AColors.brandeisBlue),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          if (!isCollapsed)
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _buildDateField(AStrings.trainStartDate, startDate, (val) {
+                  setState(() {
+                    startDate = val;
+                    journeyDate = null;
+                  });
+                }),
+                Text(AStrings.or, style: ATextStyles.bodyText),
+                _buildDateField(AStrings.journeyDate, journeyDate, (val) {
+                  setState(() {
+                    journeyDate = val;
+                    startDate = null;
+                  });
+                }),
+                _buildDropdownField(
+                  label: AStrings.division,
+                  value: selectedDivision,
+                  options: divisions,
+                  onChanged: (val) {
+                    setState(() {
+                      selectedDivision = val;
+                      selectedZone = null;
+                      selectedMp = null;
+                    });
+                  },
+                ),
+                Text(AStrings.or, style: ATextStyles.bodyText),
+                _buildDropdownField(
+                  label: AStrings.zone,
+                  value: selectedZone,
+                  options: zones,
+                  onChanged: (val) {
+                    setState(() {
+                      selectedZone = val;
+                      selectedDivision = null;
+                      selectedMp = null;
+                    });
+                  },
+                ),
+                Text(AStrings.or, style: ATextStyles.bodyText),
+                _buildDropdownField(
+                  label: AStrings.userType,
+                  value: selectedMp,
+                  options: mpOptions,
+                  onChanged: (val) {
+                    setState(() {
+                      selectedMp = val;
+                      selectedDivision = null;
+                      selectedZone = null;
+                    });
+                  },
+                ),
+                Text(AStrings.or, style: ATextStyles.bodyText),
+                _buildDropdownField(
+                  label: AStrings.status,
+                  value: selectedStatus,
+                  options: statusOptions,
+                  onChanged: (val) => setState(() => selectedStatus = val),
+                ),
+                Text(AStrings.or, style: ATextStyles.bodyText),
+                _buildDropdownField(
+                  label: AStrings.trainNo,
+                  value: selectedTrainNo,
+                  options: trainNoOptions,
+                  onChanged: (val) => setState(() => selectedTrainNo = val),
+                ),
+                ElevatedButton(
+                  onPressed: _handleSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(AStrings.submit, style: ATextStyles.buttonText.copyWith(color: AColors.white)),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _handleRefresh,
+                  icon: Icon(Icons.refresh, size: 20, color: AColors.brandeisBlue),
+                  label: Text("Refresh", style: ATextStyles.buttonText.copyWith(color: AColors.brandeisBlue)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AColors.brandeisBlue),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: widget.startIndex <= 0 ? null : widget.onPreviousPage,
+                  tooltip: 'Previous Page',
+                ),
+                Text(
+                  '‹ Showing ${widget.startIndex + 1}–${widget.endIndex} of ${widget.totalCount} ›',
+                  style: ATextStyles.bodySmall.copyWith(color: AColors.gray),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: widget.endIndex >= widget.totalCount ? null : widget.onNextPage,
+                  tooltip: 'Next Page',
+                ),
+              ],
             ),
           ),
         ],
       ),
-          ),
-        ),
-      );
-    }
+    );
+  }
 }

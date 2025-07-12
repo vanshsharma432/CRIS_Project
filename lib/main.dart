@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
 import 'providers/sort_provider.dart';
@@ -63,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isPreScreenSubmitted = false;
   int? activeSearchColumn;
 
+  // Pagination state
   int currentPage = 0;
   final int itemsPerPage = 20;
 
@@ -96,11 +98,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     setState(() {
       isPreScreenSubmitted = true;
+      // Use selected filters if needed
     });
   }
 
   void _onPreScreenRefresh() {
     setState(() {
+      isPreScreenSubmitted = false;
       currentPage = 0;
       for (var controller in _headerSearchControllers) {
         controller.clear();
@@ -119,8 +123,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final sortProvider = Provider.of<SortProvider>(context);
 
+    // 1. Sort the filtered list
     final sortedRequests = [...filteredRequests]..sort(sortProvider.compare);
 
+    // 2. Paginate
+    final totalCount = sortedRequests.length;
+    final startIndex = currentPage * itemsPerPage;
+    final endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
     final visibleItems = sortedRequests.skip(startIndex).take(itemsPerPage).toList();
 
     return Scaffold(
@@ -150,6 +159,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           totalCount: totalCount,
                           onColumnTapped: (index) {
                             setState(() {
+                              activeSearchColumn =
+                              activeSearchColumn == index ? null : index;
                             });
 
                             final fieldMap = {
@@ -171,8 +182,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: TrainRequestListView(
                           allRequests: visibleItems,
-                            ),
+                          onUpdate: (updated) => _updateTrainRequest(updated),
                         ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: currentPage > 0
+                                  ? () => setState(() => currentPage--)
+                                  : null,
+                              child: const Text('← Previous'),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Page ${currentPage + 1}'),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: endIndex < totalCount
+                                  ? () => setState(() => currentPage++)
+                                  : null,
+                              child: const Text('Next →'),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   );
                 },
