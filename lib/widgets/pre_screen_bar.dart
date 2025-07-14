@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../constants/strings.dart';
+import '../services/API.dart';
 
 class PreScreenBar extends StatefulWidget {
   final void Function({
@@ -13,6 +14,7 @@ class PreScreenBar extends StatefulWidget {
   String? mpInvolvement,
   String? status,
   String? trainNo,
+  List<Map<String, dynamic>>? apiData,
   }) onSubmit;
 
   final VoidCallback? onRefresh;
@@ -111,21 +113,25 @@ class _PreScreenBarState extends State<PreScreenBar> {
     );
   }
 
-  void _handleSubmit() {
+  void _handleSubmit() async {
     final selectedDate = journeyDate ?? startDate;
     final selectedDateType = journeyDate != null ? AStrings.journeyDate : AStrings.trainStartDate;
 
-    if (selectedDate == null ||
-        (selectedDivision == null &&
-            selectedZone == null &&
-            selectedMp == null &&
-            selectedStatus == null &&
-            selectedTrainNo == null)) {
+    if (selectedDate == null || selectedTrainNo == null || selectedDivision == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AStrings.fillFieldsError)),
+        const SnackBar(content: Text("Please fill Train Start Date, Train No, and Division.")),
       );
       return;
     }
+
+    // Format date to yyyy-MM-dd
+    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+    final fetchedData = await MRApiService.fetchZoneRequests(
+      trainStartDate: formattedDate,
+      trainNo: selectedTrainNo!,
+      divisionCode: selectedDivision!,
+    );
 
     widget.onSubmit(
       selectedDate: selectedDate,
@@ -135,6 +141,7 @@ class _PreScreenBarState extends State<PreScreenBar> {
       mpInvolvement: selectedMp,
       status: selectedStatus,
       trainNo: selectedTrainNo,
+      apiData: fetchedData,
     );
   }
 

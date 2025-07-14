@@ -60,12 +60,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<TextEditingController> _headerSearchControllers =
   List.generate(8, (_) => TextEditingController());
 
+  List<TrainRequest> _apiTrainRequests = [];
+
   bool isPreScreenSubmitted = false;
   int? activeSearchColumn;
 
-  // Pagination state
   int currentPage = 0;
   final int itemsPerPage = 20;
+
+  int startIndex = 0;
+  int endIndex = 0;
+  int totalCount = 0;
 
   @override
   void initState() {
@@ -76,7 +81,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<TrainRequest> get filteredRequests {
-    return trainRequests.where((request) {
+    final sourceList = _apiTrainRequests.isNotEmpty ? _apiTrainRequests : trainRequests;
+
+    return sourceList.where((request) {
       return request.pnr.toString().contains(_headerSearchControllers[0].text) &&
           request.trainStartDate.toString().contains(_headerSearchControllers[1].text) &&
           request.trainNo.toString().contains(_headerSearchControllers[2].text) &&
@@ -94,19 +101,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String? mpInvolvement,
     String? status,
     String? trainNo,
+    List<Map<String, dynamic>>? apiData,
   }) {
-    setState(() {
-      isPreScreenSubmitted = true;
-      // Use selected filters if needed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          isPreScreenSubmitted = true;
+          currentPage = 0;
+
+          // Convert API data to TrainRequest model
+          if (apiData != null && apiData.isNotEmpty) {
+            _apiTrainRequests = apiData.map((json) => TrainRequest.fromJson(json)).toList();
+          } else {
+            _apiTrainRequests = [];
+          }
+        });
+      }
     });
   }
 
   void _onPreScreenRefresh() {
-    setState(() {
-      isPreScreenSubmitted = false;
-      currentPage = 0;
-      for (var controller in _headerSearchControllers) {
-        controller.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          isPreScreenSubmitted = true;
+          currentPage = 0;
+          _apiTrainRequests.clear();
+
+          for (var controller in _headerSearchControllers) {
+            controller.clear();
+          }
+        });
       }
     });
   }
@@ -118,17 +143,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _goToPreviousPage() {
+    if (currentPage > 0) {
+      setState(() => currentPage--);
+    }
+  }
+
+  void _goToNextPage() {
+    final totalPages = (totalCount / itemsPerPage).ceil();
+    if (currentPage < totalPages - 1) {
+      setState(() => currentPage++);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sortProvider = Provider.of<SortProvider>(context);
 
-    // 1. Sort the filtered list
     final sortedRequests = [...filteredRequests]..sort(sortProvider.compare);
 
-    // 2. Paginate
-    final totalCount = sortedRequests.length;
-    final startIndex = currentPage * itemsPerPage;
-    final endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
+    totalCount = sortedRequests.length;
+    startIndex = currentPage * itemsPerPage;
+    endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
     final visibleItems = sortedRequests.skip(startIndex).take(itemsPerPage).toList();
 
     return Scaffold(
@@ -140,6 +176,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           PreScreenBar(
             onSubmit: _onPreScreenSubmit,
             onRefresh: _onPreScreenRefresh,
+            onPreviousPage: _goToPreviousPage,
+            onNextPage: _goToNextPage,
+            startIndex: startIndex,
+            endIndex: endIndex,
+            totalCount: totalCount,
           ),
           if (isPreScreenSubmitted)
             Expanded(
@@ -158,8 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           totalCount: totalCount,
                           onColumnTapped: (index) {
                             setState(() {
-                              activeSearchColumn =
-                              activeSearchColumn == index ? null : index;
+                              activeSearchColumn = activeSearchColumn == index ? null : index;
                             });
 
                             final fieldMap = {
@@ -181,30 +221,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: TrainRequestListView(
                           allRequests: visibleItems,
-                          onUpdate: (updated) => _updateTrainRequest(updated),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: currentPage > 0
-                                  ? () => setState(() => currentPage--)
-                                  : null,
-                              child: const Text('← Previous'),
-                            ),
-                            const SizedBox(width: 8),
-                            Text('Page ${currentPage + 1}'),
-                            const SizedBox(width: 8),
-                            TextButton(
-                              onPressed: endIndex < totalCount
-                                  ? () => setState(() => currentPage++)
-                                  : null,
-                              child: const Text('Next →'),
-                            ),
-                          ],
+                          onUpdate: _updateTrainRequest,
+                          onPaginationChanged: ({
+                            required int startIndex,
+                            required int endIndex,
+                            required int totalCount,
+                          }) {
+                            if (mounted) {
+                              setState(() {
+                                this.startIndex = startIndex;
+                                this.endIndex = endIndex;
+                                this.totalCount = totalCount;
+                              });
+                            }
+                          },
                         ),
                       ),
                     ],

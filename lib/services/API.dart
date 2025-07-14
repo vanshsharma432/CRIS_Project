@@ -7,8 +7,7 @@ import '../constants/tokens.dart';
 class MRApiService {
   static const String _baseUrl = 'http://10.64.24.46:8080/quota-backend';
 
-
-
+  /// Fetch single EQ Request by Request No
   static Future<Map<String, dynamic>?> fetchEQRequest(String eqRequestNo) async {
     final url = Uri.parse('$_baseUrl/auth/mr/getEQRequest?eqRequestNo=$eqRequestNo');
 
@@ -37,13 +36,14 @@ class MRApiService {
     return null;
   }
 
-    static Future<bool> updatePriority({
+  /// Change Priority by MR Cell
+  static Future<bool> updatePriority({
     required String eqRequestNo,
     required int priority,
     required String remarks,
   }) async {
     final url = Uri.parse('$_baseUrl/auth/mr/takeAction');
-    
+
     try {
       final response = await http.post(
         url,
@@ -70,5 +70,42 @@ class MRApiService {
       throw Exception('Failed to update priority: $e');
     }
   }
-}
 
+  /// List EQ Requests by Zone User
+  static Future<List<Map<String, dynamic>>> fetchZoneRequests({
+    required String trainStartDate,
+    required String trainNo,
+    required String divisionCode,
+  }) async {
+    final url = Uri.parse(
+      '$_baseUrl/auth/zone/getAllSentRequests'
+          '?trainStartDate=$trainStartDate'
+          '&trainNo=$trainNo'
+          '&divisionCode=$divisionCode',
+    );
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': token,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          return List<Map<String, dynamic>>.from(jsonResponse['data']);
+        } else {
+          print("API Error: ${jsonResponse['message']}");
+        }
+      } else {
+        print("HTTP Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Exception in fetchZoneRequests: $e");
+    }
+
+    return [];
+  }
+}
