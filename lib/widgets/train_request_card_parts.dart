@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
-import '../constants/strings.dart'; // ✅ Added'
+import '../constants/strings.dart';
+import 'package:provider/provider.dart';
+import '../providers/sort_provider.dart';
 
 /// 📅 Date Helpers
 String formatDate(DateTime date) => DateFormat('dd/MM/yyyy').format(date);
@@ -37,7 +39,6 @@ class TableCellText extends StatelessWidget {
   }
 }
 
-
 /// 👥 Passenger metric column (Total, Requested, Accepted)
 class PassengerMetric extends StatelessWidget {
   final String label;
@@ -58,7 +59,6 @@ class PassengerMetric extends StatelessWidget {
     );
   }
 }
-
 
 /// 📄 Row with icon, label and value (mobile view)
 class IconTextRow extends StatelessWidget {
@@ -115,6 +115,7 @@ class SelectionCheckbox extends StatelessWidget {
     );
   }
 }
+
 /// 🧾 Reusable table header cell
 class TableHeaderCell extends StatelessWidget {
   final String text;
@@ -123,12 +124,12 @@ class TableHeaderCell extends StatelessWidget {
   final VoidCallback onTap;
 
   const TableHeaderCell(
-    this.text, {
-    required this.isSearching,
-    required this.controller,
-    required this.onTap,
-    super.key,
-  });
+      this.text, {
+        required this.isSearching,
+        required this.controller,
+        required this.onTap,
+        super.key,
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -166,22 +167,31 @@ class TableHeaderCell extends StatelessWidget {
   }
 }
 
-
 /// 🧩 Reusable table header row for desktop
 class DesktopHeaderRow extends StatelessWidget {
   final int? activeSearchColumn;
   final List<TextEditingController> headerControllers;
   final void Function(int columnIndex) onColumnTapped;
 
+  // 📦 Pagination info
+  final int startIndex;
+  final int endIndex;
+  final int totalCount;
+
   const DesktopHeaderRow({
     super.key,
     required this.activeSearchColumn,
     required this.headerControllers,
     required this.onColumnTapped,
+    required this.startIndex,
+    required this.endIndex,
+    required this.totalCount,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sortProvider = Provider.of<SortProvider>(context);
+
     final titles = [
       AStrings.pnrJourney,
       AStrings.startDate,
@@ -191,8 +201,33 @@ class DesktopHeaderRow extends StatelessWidget {
       AStrings.passengers,
       AStrings.requestedBy,
       AStrings.status,
-      '', // edit column
+      AStrings.options, // Pagination column
     ];
+
+    final fieldKeys = [
+      'pnr',
+      'trainStartDate',
+      'trainNo',
+      'seatClass',
+      'division',
+      'passengerCount', // Not sortable
+      'requestedBy',
+      'currentStatus',
+    ];
+
+    final rangeText = 'Showing ${startIndex + 1}–$endIndex of $totalCount';
+
+    IconData getSortIcon(String field) {
+      if (sortProvider.currentSortField != field) return Icons.unfold_more;
+      switch (sortProvider.sortMode) {
+        case SortMode.ascending:
+          return Icons.arrow_upward;
+        case SortMode.descending:
+          return Icons.arrow_downward;
+        default:
+          return Icons.unfold_more;
+      }
+    }
 
     return Container(
       color: AColors.white,
@@ -203,7 +238,7 @@ class DesktopHeaderRow extends StatelessWidget {
           0: FlexColumnWidth(1),
           1: FixedColumnWidth(120),
           2: FlexColumnWidth(1),
-          3: FlexColumnWidth(1),
+          3: FixedColumnWidth(80),
           4: FlexColumnWidth(1),
           5: FixedColumnWidth(160),
           6: FlexColumnWidth(2),
@@ -215,12 +250,9 @@ class DesktopHeaderRow extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AColors.borderLight)),
             ),
-            children: List.generate(8, (index) {
-              // Edit column (skip)
-              if (index == 7) return const SizedBox();
-
-              // Passengers column – static, not searchable
-              if (index == 4) {
+            children: List.generate(9, (index) {
+              if (index == 5) {
+                // Passengers column (not sortable/searchable)
                 return TableHeaderCell(
                   AStrings.passengers,
                   isSearching: false,
@@ -229,11 +261,72 @@ class DesktopHeaderRow extends StatelessWidget {
                 );
               }
 
-              return TableHeaderCell(
-                titles[index],
-                isSearching: activeSearchColumn == index,
-                controller: headerControllers[index],
+              if (index == 8) {
+                return Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    AStrings.options,
+                    textAlign: TextAlign.center,
+                    style: ATextStyles.tableHeader.copyWith(
+                      color: AColors.textPrimary,
+                    ),
+                  ),
+                );
+              }
+
+              final fieldKey = fieldKeys[index];
+
+              return GestureDetector(
                 onTap: () => onColumnTapped(index),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            titles[index],
+                            textAlign: TextAlign.center,
+                            style: ATextStyles.tableHeader.copyWith(
+                              color: activeSearchColumn == index
+                                  ? AColors.primary
+                                  : AColors.textPrimary,
+                              decoration: activeSearchColumn == index
+                                  ? TextDecoration.underline
+                                  : null,
+                            ),
+                          ),
+                          if (activeSearchColumn == index)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: SizedBox(
+                                height: 36,
+                                child: TextField(
+                                  controller: headerControllers[index],
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    border: OutlineInputBorder(),
+                                    hintText: 'Search',
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        getSortIcon(fieldKey),
+                        size: 18,
+                        color: AColors.textPrimary,
+                      ),
+                      onPressed: () {
+                        sortProvider.toggleSortField(fieldKey);
+                      },
+                    ),
+                  ],
+                ),
               );
             }),
           ),
@@ -242,3 +335,4 @@ class DesktopHeaderRow extends StatelessWidget {
     );
   }
 }
+

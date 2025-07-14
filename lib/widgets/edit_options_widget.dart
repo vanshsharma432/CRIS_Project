@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/train_request_model.dart';
+import '../services/EQ_request.dart'; // Import your API service
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 
 class EditOptionsWidget extends StatefulWidget {
   final int initialPriority;
+  final String eqRequestNo; // Add this parameter
   final ValueChanged<int> onPriorityChanged;
   final VoidCallback onRejected;
 
   const EditOptionsWidget({
     super.key,
     required this.initialPriority,
+    required this.eqRequestNo, // New required parameter
     required this.onPriorityChanged,
     required this.onRejected,
   });
@@ -20,143 +22,86 @@ class EditOptionsWidget extends StatefulWidget {
 }
 
 class _EditOptionsWidgetState extends State<EditOptionsWidget> {
-  bool showActions = false;
   bool isSaved = false;
+  bool isLoading = false;
 
-  late TextEditingController _priorityController;
+  Future<void> _handlePriorityChange(int priority) async {
+    setState(() => isLoading = true);
 
-  @override
-  void initState() {
-    super.initState();
-    _priorityController = TextEditingController(
-      text: widget.initialPriority.toString(),
-    );
+    try {
+      final success = await MRApiService.updatePriority(
+        eqRequestNo: widget.eqRequestNo,
+        priority: priority,
+        remarks: "Priority changed to $priority", // Customize remarks as needed
+      );
+
+      if (success) {
+        widget.onPriorityChanged(priority);
+        setState(() => isSaved = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Priority updated successfully')),
+        );
+      } else {
+        throw Exception('Failed to update priority');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
-  @override
-  void dispose() {
-    _priorityController.dispose();
-    super.dispose();
+  void _handleSelected(dynamic value) {
+    if (value == 'reject') {
+      widget.onRejected();
+      setState(() => isSaved = true);
+    } else if (value is int) {
+      _handlePriorityChange(value);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        TextButton.icon(
-          onPressed: () {
-            setState(() {
-              showActions = !showActions;
-              isSaved = false;
-            });
-          },
+        PopupMenuButton<dynamic>(
           icon: Icon(
             isSaved ? Icons.check_circle_outline : Icons.edit,
-            size: 18,
             color: isSaved ? AColors.primary : AColors.brandeisBlue,
+            size: 20,
           ),
-          label: Text(
-            isSaved ? "Saved" : "Edit",
-            style: ATextStyles.buttonSmall.copyWith(
-              color: isSaved ? AColors.primary : AColors.brandeisBlue,
+          tooltip: 'Edit',
+          onSelected: _handleSelected,
+          itemBuilder: (context) => [
+            ...List.generate(
+              6,
+              (index) => PopupMenuItem(
+                value: index + 1,
+                child: Text("Priority ${index + 1}"),
+              ),
             ),
-          ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'reject',
+              child: Row(
+                children: [
+                  Icon(Icons.close, color: Colors.red, size: 18),
+                  SizedBox(width: 8),
+                  Text("Reject", style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
         ),
-
-        if (showActions)
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            decoration: BoxDecoration(
-              color: AColors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Reject Button (red ❌)
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () {
-                      widget.onRejected();
-                      setState(() {
-                        showActions = false;
-                        isSaved = true;
-                      });
-                    },
-                    icon: const Icon(Icons.close, size: 16),
-                    color: Colors.white,
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    tooltip: 'Reject',
-                  ),
-                ),
-                const SizedBox(width: 6),
-
-                // Priority Input
-                SizedBox(
-                  width: isDesktop ? 60 : 50,
-                  child: TextField(
-                    controller: _priorityController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                      hintText: "0–3",
-                      hintStyle: ATextStyles.bodySmall.copyWith(color: AColors.gray),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    style: ATextStyles.bodySmall,
-                  ),
-                ),
-                const SizedBox(width: 6),
-
-                // Save Button (blue ✔️)
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () {
-                      final newPriority = int.tryParse(_priorityController.text.trim());
-                      if (newPriority != null) {
-                        widget.onPriorityChanged(newPriority);
-                        setState(() {
-                          isSaved = true;
-                          showActions = false;
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.check, size: 16),
-                    color: Colors.white,
-                    style: IconButton.styleFrom(
-                      backgroundColor: AColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    tooltip: 'Save Priority',
-                  ),
-                ),
-              ],
+        if (isLoading)
+          const Positioned(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
       ],

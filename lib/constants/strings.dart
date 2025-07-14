@@ -1,17 +1,19 @@
 class AStrings {
   // App titles and section headings
-  static const dashboardTitle = 'Dashboard';
+  static const dashboardTitle = 'IREQMS';
   static const trainRequestList = 'Train Requests List';
 
   // Table headers (used in both desktop header and allColumns)
   static const status = 'Status';
   static const passengers = 'Passengers';
-  static const trainInfo = 'Train No. (Route)';
+  static const trainInfo = 'Train No. (Boarding at)';
   static const pnrJourney = 'PNR (Journey Date)';
   static const startDate = 'Start Date';
   static const requestedBy = 'Requested by (Requested on)';
   static const divisionZone = 'Division (Zone)';
   static const select = 'Select';
+  static const options = 'options';
+
 
   // Data labels for filtering/column selection
   static const totalPassengers = 'Total Passengers';

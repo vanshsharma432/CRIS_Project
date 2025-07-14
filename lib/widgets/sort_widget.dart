@@ -40,7 +40,8 @@ class SortWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ElevatedButton.icon(
-            onPressed: () => sortProvider.toggleSortMode(),
+            onPressed: () =>
+                sortProvider.toggleSortField('trainJourneyDate'),
             icon: Icon(getSortIcon(), size: 20),
             label: const Text("Sort"),
             style: ElevatedButton.styleFrom(

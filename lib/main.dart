@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
-import 'widgets/train_request_card.dart';
+import 'providers/sort_provider.dart';
 import 'widgets/train_request_list_view.dart';
-import 'widgets/select_columns_widget.dart';
-import 'widgets/search_filter_row.dart';
-import 'widgets/train_request_card_parts.dart';
 import 'widgets/pre_screen_bar.dart';
 import 'theme/colors.dart';
 import 'theme/text_styles.dart';
 import 'constants/strings.dart';
+import 'widgets/train_request_card_parts.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SortProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -33,8 +37,7 @@ class MyApp extends StatelessWidget {
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: AColors.brandeisBlue,
-          titleTextStyle:
-              ATextStyles.headingMedium.copyWith(color: AColors.white),
+          titleTextStyle: ATextStyles.headingMedium.copyWith(color: AColors.white),
           iconTheme: const IconThemeData(color: AColors.white),
         ),
         checkboxTheme: CheckboxThemeData(
@@ -47,68 +50,43 @@ class MyApp extends StatelessWidget {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key}); // ✅ fixed constructor
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _pnrController = TextEditingController();
-  final _trainNoController = TextEditingController();
-  final _divisionController = TextEditingController();
-  final _statusController = TextEditingController();
-  final _requestedByController = TextEditingController();
-
   final List<TextEditingController> _headerSearchControllers =
-      List.generate(8, (_) => TextEditingController()); // ✅ only one declaration
+  List.generate(8, (_) => TextEditingController());
 
-  List<String> selectedColumns = List.from(AStrings.allColumns);
   bool isPreScreenSubmitted = false;
-  int? activeSearchColumn; // index of active heading being searched
+  int? activeSearchColumn;
+
+  int currentPage = 0;
+  final int itemsPerPage = 20;
+
+  int startIndex = 0;
+  int endIndex = 0;
+  int totalCount = 0;
 
   @override
   void initState() {
     super.initState();
-      for (var controller in _headerSearchControllers) {
-    controller.addListener(() => setState(() {}));
-  }
-
-    _pnrController.addListener(() => setState(() {}));
-    _trainNoController.addListener(() => setState(() {}));
-    _divisionController.addListener(() => setState(() {}));
-    _statusController.addListener(() => setState(() {}));
-    _requestedByController.addListener(() => setState(() {}));
+    for (var controller in _headerSearchControllers) {
+      controller.addListener(() => setState(() {}));
+    }
   }
 
   List<TrainRequest> get filteredRequests {
     return trainRequests.where((request) {
-      return request.pnr
-              .toString()
-              .contains(_headerSearchControllers[0].text) &&
-          request.trainStartDate
-              .toString()
-              .contains(_headerSearchControllers[1].text) &&
-          request.trainNo
-              .toString()
-              .contains(_headerSearchControllers[2].text) &&
-          request.division
-              .toLowerCase()
-              .contains(_headerSearchControllers[3].text.toLowerCase()) &&
-          request.requestedBy
-              .toLowerCase()
-              .contains(_headerSearchControllers[5].text.toLowerCase()) &&
-          request.currentStatus
-              .toLowerCase()
-              .contains(_headerSearchControllers[6].text.toLowerCase());
-      // Skipping columns 4 (passenger counts) and 7 (edit)
+      return request.pnr.toString().contains(_headerSearchControllers[0].text) &&
+          request.trainStartDate.toString().contains(_headerSearchControllers[1].text) &&
+          request.trainNo.toString().contains(_headerSearchControllers[2].text) &&
+          request.division.toLowerCase().contains(_headerSearchControllers[3].text.toLowerCase()) &&
+          request.requestedBy.toLowerCase().contains(_headerSearchControllers[5].text.toLowerCase()) &&
+          request.currentStatus.toLowerCase().contains(_headerSearchControllers[6].text.toLowerCase());
     }).toList();
-  }
-
-  void onColumnSelectionChanged(List<String> columns) {
-    setState(() {
-      selectedColumns = columns;
-    });
   }
 
   void _onPreScreenSubmit({
@@ -117,22 +95,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String? division,
     String? zone,
     String? mpInvolvement,
+    String? status,
+    String? trainNo,
   }) {
-    setState(() {
-      isPreScreenSubmitted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          isPreScreenSubmitted = true;
+          currentPage = 0;
+        });
+      }
     });
+  }
+
+  void _onPreScreenRefresh() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          isPreScreenSubmitted = true;
+          currentPage = 0;
+          for (var controller in _headerSearchControllers) {
+            controller.clear();
+          }
+        });
+      }
+    });
+  }
+
+  void _updateTrainRequest(TrainRequest updated) {
+    final indexInMain = trainRequests.indexWhere((r) => r.pnr == updated.pnr);
+    if (indexInMain != -1) {
+      trainRequests[indexInMain] = updated;
+    }
+  }
+
+  void _goToPreviousPage() {
+    if (currentPage > 0) {
+      setState(() => currentPage--);
+    }
+  }
+
+  void _goToNextPage() {
+    final totalPages = (totalCount / itemsPerPage).ceil();
+    if (currentPage < totalPages - 1) {
+      setState(() => currentPage++);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final sortProvider = Provider.of<SortProvider>(context);
+
+    final sortedRequests = [...filteredRequests]..sort(sortProvider.compare);
+
+    totalCount = sortedRequests.length;
+    startIndex = currentPage * itemsPerPage;
+    endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
+    final visibleItems = sortedRequests.skip(startIndex).take(itemsPerPage).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(AStrings.dashboardTitle),
       ),
       body: Column(
         children: [
-          PreScreenBar(onSubmit: _onPreScreenSubmit),
-
+          PreScreenBar(
+            onSubmit: _onPreScreenSubmit,
+            onRefresh: _onPreScreenRefresh,
+            onPreviousPage: _goToPreviousPage,
+            onNextPage: _goToNextPage,
+            startIndex: startIndex,
+            endIndex: endIndex,
+            totalCount: totalCount,
+          ),
           if (isPreScreenSubmitted)
             Expanded(
               child: LayoutBuilder(
@@ -142,56 +177,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Column(
                     children: [
                       if (isDesktop)
-              DesktopHeaderRow(
-                activeSearchColumn: activeSearchColumn,
-                headerControllers: _headerSearchControllers,
-                onColumnTapped: (index) {
-                  setState(() {
-                    activeSearchColumn = activeSearchColumn == index ? null : index;
-                  });
-                },
-              ),
+                        DesktopHeaderRow(
+                          activeSearchColumn: activeSearchColumn,
+                          headerControllers: _headerSearchControllers,
+                          startIndex: startIndex,
+                          endIndex: endIndex,
+                          totalCount: totalCount,
+                          onColumnTapped: (index) {
+                            setState(() {
+                              activeSearchColumn = activeSearchColumn == index ? null : index;
+                            });
 
-                      // Expanded(
-                      //   child: ListView.builder(
-                      //     itemCount: filteredRequests.length,
-                      //     itemBuilder: (context, index) {
-                      //       final request = filteredRequests[index];
+                            final fieldMap = {
+                              0: 'pnr',
+                              1: 'trainStartDate',
+                              2: 'trainNo',
+                              3: 'division',
+                              4: 'seatClass',
+                              5: 'totalPassengers',
+                              6: 'requestedBy',
+                              7: 'currentStatus',
+                            };
 
-                      //       return TrainRequestCard(
-                      //         request: request,
-                      //         onSelectionChanged: (bool? newValue) {
-                      //           setState(() {
-                      //             final updated = request.copyWith(
-                      //                 isSelected: newValue ?? false);
-                      //             _updateTrainRequest(updated);
-                      //           });
-                      //         },
-                      //         onPriorityChanged: (int newPriority) {
-                      //           setState(() {
-                      //             final updated =
-                      //                 request.copyWith(priority: newPriority);
-                      //             _updateTrainRequest(updated);
-                      //           });
-                      //         },
-                      //         onRejected: () {
-                      //           setState(() {
-                      //             final updated = request.copyWith(
-                      //                 currentStatus: "Rejected");
-                      //             _updateTrainRequest(updated);
-                      //           });
-                      //         },
-                      //       );
-                      //     },
-                      //   ),
-                      // ),
+                            if (fieldMap.containsKey(index)) {
+                              sortProvider.toggleSortField(fieldMap[index]!);
+                            }
+                          },
+                        ),
                       Expanded(
                         child: TrainRequestListView(
-                          allRequests: filteredRequests,
-                          onUpdate: (updated) => _updateTrainRequest(updated),
+                          allRequests: visibleItems,
+                          onUpdate: _updateTrainRequest,
+                          onPaginationChanged: ({
+                            required int startIndex,
+                            required int endIndex,
+                            required int totalCount,
+                          }) {
+                            if (mounted) {
+                              setState(() {
+                                this.startIndex = startIndex;
+                                this.endIndex = endIndex;
+                                this.totalCount = totalCount;
+                              });
+                            }
+                          },
                         ),
                       ),
-
+                      // Removed pagination from here
                     ],
                   );
                 },
@@ -200,13 +232,5 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
-  }
-
-  void _updateTrainRequest(TrainRequest updated) {
-    final indexInMain =
-        trainRequests.indexWhere((r) => r.pnr == updated.pnr);
-    if (indexInMain != -1) {
-      trainRequests[indexInMain] = updated;
-    }
   }
 }

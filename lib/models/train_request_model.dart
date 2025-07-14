@@ -17,6 +17,7 @@ class TrainRequest {
   final int trainNo;
   final String seatClass;
   final bool isSelected;
+  final String eqRequestNo;
 
   // ✅ New field added for Edit
   final int priority;
@@ -40,7 +41,8 @@ class TrainRequest {
     required this.pnr,
     required this.trainNo,
     required this.isSelected,
-    required this.priority, // ✅ required now
+    required this.priority,// ✅ required now
+    required this.eqRequestNo,
   });
 
   /// ✅ copyWith for immutability
@@ -84,6 +86,7 @@ class TrainRequest {
       trainNo: trainNo ?? this.trainNo,
       isSelected: isSelected ?? this.isSelected,
       priority: priority ?? this.priority,
+      eqRequestNo: eqRequestNo ?? this.eqRequestNo,
     );
   }
 
