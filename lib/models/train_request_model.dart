@@ -18,8 +18,6 @@ class TrainRequest {
   final String seatClass;
   final bool isSelected;
   final String eqRequestNo;
-
-  // ✅ New field added for Edit
   final int priority;
 
   TrainRequest({
@@ -35,17 +33,16 @@ class TrainRequest {
     required this.destination,
     required this.requestedBy,
     required this.zone,
-    required this.seatClass,
     required this.division,
     required this.lastUpdated,
     required this.pnr,
     required this.trainNo,
+    required this.seatClass,
     required this.isSelected,
-    required this.priority,// ✅ required now
     required this.eqRequestNo,
+    required this.priority,
   });
 
-  /// ✅ copyWith for immutability
   TrainRequest copyWith({
     int? totalPassengers,
     int? requestedPassengers,
@@ -63,8 +60,10 @@ class TrainRequest {
     DateTime? lastUpdated,
     int? pnr,
     int? trainNo,
+    String? seatClass,
     bool? isSelected,
-    int? priority, // ✅ added here too
+    String? eqRequestNo,
+    int? priority,
   }) {
     return TrainRequest(
       totalPassengers: totalPassengers ?? this.totalPassengers,
@@ -82,15 +81,39 @@ class TrainRequest {
       division: division ?? this.division,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       pnr: pnr ?? this.pnr,
-      seatClass: seatClass ?? this.seatClass ,
       trainNo: trainNo ?? this.trainNo,
+      seatClass: seatClass ?? this.seatClass,
       isSelected: isSelected ?? this.isSelected,
-      priority: priority ?? this.priority,
       eqRequestNo: eqRequestNo ?? this.eqRequestNo,
+      priority: priority ?? this.priority,
     );
   }
 
-  /// ✅ JSON conversion (for filtering/logging etc.)
+  factory TrainRequest.fromJson(Map<String, dynamic> json) {
+    return TrainRequest(
+      totalPassengers: json['totalPassengers'] ?? 0,
+      requestedPassengers: json['requestedPassengers'] ?? 0,
+      acceptedPassengers: json['acceptedPassengers'] ?? 0,
+      currentStatus: json['currentStatus'] ?? '',
+      remarksByRailways: json['remarksByRailways'] ?? '',
+      requestedOn: DateTime.tryParse(json['requestedOn'] ?? '') ?? DateTime.now(),
+      trainStartDate: DateTime.tryParse(json['trainStartDate'] ?? '') ?? DateTime.now(),
+      trainJourneyDate: DateTime.tryParse(json['trainJourneyDate'] ?? '') ?? DateTime.now(),
+      sourceStation: json['sourceStation'] ?? '',
+      destination: json['destination'] ?? '',
+      requestedBy: json['requestedBy'] ?? '',
+      zone: json['zone'] ?? '',
+      division: json['division'] ?? '',
+      lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
+      pnr: json['pnr'] ?? 0,
+      trainNo: json['trainNo'] ?? 0,
+      seatClass: json['seatClass'] ?? '',
+      isSelected: json['isSelected'] ?? false,
+      eqRequestNo: json['eqRequestNo'] ?? '',
+      priority: json['priority'] ?? 0,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'totalPassengers': totalPassengers,
     'requestedPassengers': requestedPassengers,
@@ -108,7 +131,9 @@ class TrainRequest {
     'lastUpdated': lastUpdated.toIso8601String(),
     'pnr': pnr,
     'trainNo': trainNo,
+    'seatClass': seatClass,
     'isSelected': isSelected,
+    'eqRequestNo': eqRequestNo,
     'priority': priority,
   };
 }
