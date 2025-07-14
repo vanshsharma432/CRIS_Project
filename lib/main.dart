@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
 import 'providers/sort_provider.dart';
