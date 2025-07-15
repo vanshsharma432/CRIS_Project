@@ -54,7 +54,23 @@ class _PreScreenBarState extends State<PreScreenBar> {
   final List<String> zones = ['NR', 'WR', 'ER', 'SR'];
   final List<String> mpOptions = ['MP', 'Non-MP'];
   final List<String> statusOptions = ['Approved', 'Pending', 'Rejected'];
-  final List<String> trainNoOptions = ['12045', '12312', '22120', '22903'];
+
+  List<String> trainList = [];
+  bool isLoadingTrainList = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrainList();
+  }
+
+  Future<void> _loadTrainList() async {
+    final fetched = await MRApiService.fetchTrainList();
+    setState(() {
+      trainList = fetched;
+      isLoadingTrainList = false;
+    });
+  }
 
   Future<void> _pickDate({
     required DateTime? currentDate,
@@ -124,7 +140,6 @@ class _PreScreenBarState extends State<PreScreenBar> {
       return;
     }
 
-    // Format date to yyyy-MM-dd
     final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 
     final fetchedData = await MRApiService.fetchZoneRequests(
@@ -161,6 +176,8 @@ class _PreScreenBarState extends State<PreScreenBar> {
 
   @override
   Widget build(BuildContext context) {
+    final trainNoOptions = trainList;
+
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -247,7 +264,9 @@ class _PreScreenBarState extends State<PreScreenBar> {
                   onChanged: (val) => setState(() => selectedStatus = val),
                 ),
                 Text(AStrings.or, style: ATextStyles.bodyText),
-                _buildDropdownField(
+                isLoadingTrainList
+                    ? const CircularProgressIndicator()
+                    : _buildDropdownField(
                   label: AStrings.trainNo,
                   value: selectedTrainNo,
                   options: trainNoOptions,
