@@ -36,7 +36,7 @@ final List<TrainRequest> trainRequests = List.generate(30, (index) {
     requestedOn: randomDate(),
     sourceStation: stations[rand.nextInt(stations.length)],
     destination: stations[rand.nextInt(stations.length)],
-    trainNo: rand.nextInt(90000) + 1000,
+    trainNo: 12304,
     trainStartDate: startDate,
     trainJourneyDate: journeyDate,
     pnr: rand.nextInt(900000000) + 1000000000,
