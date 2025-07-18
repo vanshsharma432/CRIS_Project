@@ -38,6 +38,7 @@ dependencies:
   google_fonts: ^6.2.1
   provider: ^6.1.5
   http: ^1.4.0
+  dropdown_search: ^5.0.5
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +56,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  assets:
+    - assets/background.jpg
+    - assets/logo.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

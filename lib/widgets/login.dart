@@ -1,12 +1,13 @@
+//lib/widgets/login.dart
+
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'services.dart';
+import '../services/API.dart';
 import 'pnr.dart';
-import 'constants.dart';
-import 'colors.dart';
-import 'text_styles.dart';
+import '../constants/strings.dart';
+import '../theme/colors.dart';
+import '../theme/text_styles.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});

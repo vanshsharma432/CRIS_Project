@@ -96,3 +96,39 @@ class AStrings {
     select,
   ];
 }
+
+class AppConstants {
+  // API URLs
+  static const String baseUrl = "http://10.64.24.46:8080/quota-backend";
+  static const String captchaEndpoint = "$baseUrl/noauth/captcha";
+  static const String otpEndpoint = "$baseUrl/noauth/loginwithcaptcha";
+  static const String otpValidateEndpoint = "$baseUrl/noauth/otpvalidate";
+  static const String pnrEnquiryEndpoint = "$baseUrl/auth/ru/external/pnrEnquiry";
+  static const String saveEqRequestEndpoint = "$baseUrl/auth/ru/saveEqRequest";
+
+  // Asset paths
+  static const String backgroundImage = 'assets/background.jpg';
+  static const String logoImage = 'assets/logo.png';
+
+  // Relationships
+  static const List<String> relationshipOptions = [
+    'Self',
+    'Spouse',
+    'Child',
+    'Parent',
+    'Relative',
+    'Friend',
+    'Others',
+  ];
+
+  // Priority options
+  static const List<Map<String, dynamic>> priorityOptions = [
+    {'value': 1, 'label': '1 – Immediate'},
+    {'value': 2, 'label': '2 – Very Urgent'},
+    {'value': 3, 'label': '3 – Urgent'},
+  ];
+
+  // UI
+  static const int mobileWidthBreakpoint = 600;
+  static const int wideWidthBreakpoint = 800;
+}

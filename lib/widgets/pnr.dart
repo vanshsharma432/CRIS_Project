@@ -1,11 +1,11 @@
-// lib/pnr.dart
+// lib/widgets/pnr.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'services.dart';
-import 'constants.dart';
-import 'colors.dart';
-import 'text_styles.dart';
+import '../services/API.dart';
+import '../constants/strings.dart';
+import '../theme/colors.dart';
+import '../theme/text_styles.dart';
 
 class QuotaCheckPage extends StatefulWidget {
   final String accessToken;
