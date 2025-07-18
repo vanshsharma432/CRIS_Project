@@ -9,6 +9,7 @@ import 'theme/colors.dart';
 import 'theme/text_styles.dart';
 import 'constants/strings.dart';
 import 'widgets/train_request_card_parts.dart';
+import 'widgets/login.dart';
 
 void main() {
   runApp(
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
           fillColor: MaterialStateProperty.all(AColors.secondary),
         ),
       ),
-      home: const DashboardScreen(),
+      home: const LoginScreen(),
     );
   }
 }

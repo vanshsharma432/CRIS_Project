@@ -13,10 +13,11 @@ class MRApiService {
         '$_baseUrl/auth/mr/getEQRequest?eqRequestNo=$eqRequestNo');
 
     try {
+      final token = await TokenStorage.getToken();
       final response = await http.post(
         url,
         headers: {
-          'Authorization': token,
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -46,11 +47,12 @@ class MRApiService {
     final url = Uri.parse('$_baseUrl/auth/mr/takeAction');
 
     try {
+      final token = await TokenStorage.getToken();
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': editToken,
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode([
           {
@@ -86,10 +88,11 @@ class MRApiService {
     );
 
     try {
+      final token = await TokenStorage.getToken();
       final response = await http.get(
         url,
         headers: {
-          'Authorization': token,
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -115,10 +118,11 @@ class MRApiService {
     final url = Uri.parse('$_baseUrl/auth/basic/trains');
 
     try {
+      final token = await TokenStorage.getToken();
       final response = await http.post(
         url,
         headers: {
-          'Authorization': token,
+          'Authorization': 'Bearer $token',
         },
       );
 
