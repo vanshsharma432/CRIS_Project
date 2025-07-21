@@ -10,6 +10,7 @@ import 'theme/text_styles.dart';
 import 'constants/strings.dart';
 import 'widgets/train_request_card_parts.dart';
 import 'widgets/login.dart';
+import 'services/API.dart';
 
 void main() {
   runApp(
@@ -79,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (var controller in _headerSearchControllers) {
       controller.addListener(() => setState(() {}));
     }
+    _fetchMRRequests(); // Trigger initial load
   }
 
   List<TrainRequest> get filteredRequests {
@@ -93,6 +95,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           request.currentStatus.toLowerCase().contains(_headerSearchControllers[6].text.toLowerCase());
     }).toList();
   }
+
+  Future<void> _fetchMRRequests() async {
+  try {
+    final apiData = await MRApiService.fetchSentRequestsByMR(
+      trainJourneyDate: '2025-07-02',
+      trainStartDate: '2025-07-02',
+      zoneCode: 'NE',
+      divisionCode: 'UMB',
+      userId: '186',
+      trainNo: '12304',
+    );
+
+    _onPreScreenSubmit(
+      dateType: 'trainStartDate',
+      selectedDate: DateTime.parse('2025-07-02'),
+      division: 'UMB',
+      zone: 'NE',
+      trainNo: '12304',
+      apiData: apiData,
+    );
+  } catch (e) {
+    debugPrint('Failed to fetch MR requests: $e');
+  }
+}
+
 
   void _onPreScreenSubmit({
     required String dateType,

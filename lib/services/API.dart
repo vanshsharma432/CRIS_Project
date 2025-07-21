@@ -38,6 +38,52 @@ class MRApiService {
     return null;
   }
 
+
+  /// List EQ Requests by MR User
+static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
+  required String trainJourneyDate,
+  required String trainStartDate,
+  required String zoneCode,
+  required String divisionCode,
+  required String userId,
+  required String trainNo,
+}) async {
+  final url = Uri.parse(
+    '$_baseUrl/auth/eq/getAllSentRequests'
+    '?trainJourneyDate=$trainJourneyDate'
+    '&trainStartDate=$trainStartDate'
+    '&zoneCode=$zoneCode'
+    '&divisionCode=$divisionCode'
+    '&userId=$userId'
+    '&trainNo=$trainNo',
+  );
+
+  try {
+    final token = await TokenStorage.getToken();
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      if (jsonResponse['success'] == true) {
+        return List<Map<String, dynamic>>.from(jsonResponse['data']);
+      } else {
+        print("API Error: ${jsonResponse['message']}");
+      }
+    } else {
+      print("HTTP Error: ${response.statusCode}");
+    }
+  } catch (e) {
+    print("Exception in fetchSentRequestsByMR: $e");
+  }
+
+  return [];
+}
+
   /// Change Priority by MR Cell
   static Future<bool> updatePriority({
     required String eqRequestNo,
