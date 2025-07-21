@@ -167,7 +167,7 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
 
     try {
       final token = await TokenStorage.getToken();
-      final response = await http.post(
+      final response = await http.get(
         url,
         headers: {
           'Authorization': 'Bearer $token',

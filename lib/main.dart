@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
 import 'providers/sort_provider.dart';
+import 'providers/filter_provider.dart';
 import 'widgets/train_request_list_view.dart';
 import 'widgets/pre_screen_bar.dart';
 import 'theme/colors.dart';
@@ -14,8 +15,11 @@ import 'services/API.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SortProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SortProvider()),
+        ChangeNotifierProvider(create: (_) => FilterProvider()), // <-- Add this line
+      ],
       child: const MyApp(),
     ),
   );
