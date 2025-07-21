@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:intl/intl.dart';
-import 'colors.dart';
-import 'text_styles.dart';
-import 'services.dart';
+import '../theme/colors.dart';
+import '../theme/text_styles.dart';
+import '../services/API.dart';
 
 class QuotaForwardForm extends StatefulWidget {
   final String accessToken;
@@ -20,7 +20,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
   String? selectedTrainFull;
 
   List<Map<String, String>> divisionList = [];
-  List<Map<String, dynamic>> trainOptions = [];
+  List<String> trainOptions = []; // <-- Change this line
   List<Map<String, dynamic>> eqResults = [];
 
   bool isLoading = false;
@@ -39,7 +39,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
   Future<void> _loadTrainList() async {
     setState(() => isTrainLoading = true);
     try {
-      final result = await QuotaService.fetchTrainList(accessToken: widget.accessToken);
+      final result = await MRApiService.fetchTrainList();
       setState(() {
         trainOptions = result;
       });
@@ -53,7 +53,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
   Future<void> _loadDivisions() async {
     setState(() => isDivisionLoading = true);
     try {
-      final result = await QuotaService.fetchDivisions(accessToken: widget.accessToken);
+      final result = await MRApiService.fetchDivisions(accessToken: widget.accessToken);
       setState(() {
         divisionList = result;
       });
@@ -88,8 +88,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
     });
 
     try {
-      final result = await QuotaService.fetchEQRequests(
-        accessToken: widget.accessToken,
+      final result = await MRApiService.fetchSentRequestsByMR(
         trainStartDate: selectedDate!,
         trainNo: selectedTrainNo!,
         divisionCode: selectedDivision!,
@@ -136,9 +135,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
         child: isTrainLoading
             ? const CircularProgressIndicator()
             : DropdownSearch<String>(
-                items: trainOptions
-                    .map((e) => "${e['trainNo']} - ${e['trainName'] ?? ''}")
-                    .toList(),
+                items: trainOptions, // <-- Use the string list directly
                 selectedItem: selectedTrainFull,
                 onChanged: (val) {
                   setState(() {

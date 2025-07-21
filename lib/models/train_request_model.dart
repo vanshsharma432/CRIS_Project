@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class TrainRequest {
   final int totalPassengers;
   final int requestedPassengers;
@@ -90,25 +92,35 @@ class TrainRequest {
   }
 
   factory TrainRequest.fromJson(Map<String, dynamic> json) {
+    // Handles non-ISO formatted dates from API
+    DateTime parseDate(String? dateStr) {
+      if (dateStr == null) return DateTime.now();
+      try {
+        return DateFormat("dd-MM-yyyy hh:mm:ss a").parse(dateStr);
+      } catch (_) {
+        return DateTime.tryParse(dateStr) ?? DateTime.now();
+      }
+    }
+
     return TrainRequest(
       totalPassengers: json['totalPassengers'] ?? 0,
-      requestedPassengers: json['requestedPassengers'] ?? 0,
+      requestedPassengers: json['requestPassengers'] ?? 0,
       acceptedPassengers: json['acceptedPassengers'] ?? 0,
       currentStatus: json['currentStatus'] ?? '',
-      remarksByRailways: json['remarksByRailways'] ?? '',
-      requestedOn: DateTime.tryParse(json['requestedOn'] ?? '') ?? DateTime.now(),
-      trainStartDate: DateTime.tryParse(json['trainStartDate'] ?? '') ?? DateTime.now(),
-      trainJourneyDate: DateTime.tryParse(json['trainJourneyDate'] ?? '') ?? DateTime.now(),
-      sourceStation: json['sourceStation'] ?? '',
-      destination: json['destination'] ?? '',
-      requestedBy: json['requestedBy'] ?? '',
-      zone: json['zone'] ?? '',
-      division: json['division'] ?? '',
-      lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
-      pnr: json['pnr'] ?? 0,
-      trainNo: json['trainNo'] ?? 0,
-      seatClass: json['seatClass'] ?? '',
-      isSelected: json['isSelected'] ?? false,
+      remarksByRailways: json['remarks'] ?? '',
+      requestedOn: parseDate(json['createdOn']),
+      trainStartDate: parseDate(json['trainStartDate']),
+      trainJourneyDate: parseDate(json['jrnyDate']),
+      sourceStation: json['sourceStation'] ?? '',     // Not in response
+      destination: json['destination'] ?? '',         // Not in response
+      requestedBy: json['requestedBy'] ?? '',         // Not in response
+      zone: json['zone'] ?? '',                       // May be set manually
+      division: json['division'] ?? '',               // May be set manually
+      lastUpdated: DateTime.now(),                    // Not in response
+      pnr: int.tryParse(json['pnr'].toString()) ?? 0,
+      trainNo: int.tryParse(json['trainNo'].toString()) ?? 0,
+      seatClass: json['seatClass'] ?? '',             // Not in response
+      isSelected: false,
       eqRequestNo: json['eqRequestNo'] ?? '',
       priority: json['priority'] ?? 0,
     );

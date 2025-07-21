@@ -41,27 +41,29 @@ class MRApiService {
 
   /// List EQ Requests by MR User
 static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
-  required String trainJourneyDate,
   required String trainStartDate,
-  required String zoneCode,
-  required String divisionCode,
-  required String userId,
   required String trainNo,
+  required String divisionCode,
+  String? trainJourneyDate,
+  String? zoneCode,
+  String? userId,
 }) async {
-  final url = Uri.parse(
-    '$_baseUrl/auth/eq/getAllSentRequests'
-    '?trainJourneyDate=$trainJourneyDate'
-    '&trainStartDate=$trainStartDate'
-    '&zoneCode=$zoneCode'
-    '&divisionCode=$divisionCode'
-    '&userId=$userId'
-    '&trainNo=$trainNo',
-  );
+  final queryParams = {
+    'trainStartDate': trainStartDate,
+    'trainNo': trainNo,
+    'divisionCode': divisionCode,
+    if (trainJourneyDate != null) 'trainJourneyDate': trainJourneyDate,
+    if (zoneCode != null) 'zoneCode': zoneCode,
+    if (userId != null) 'userId': userId,
+  };
+
+  final uri = Uri.parse('$_baseUrl/auth/eq/getAllSentRequests')
+      .replace(queryParameters: queryParams);
 
   try {
     final token = await TokenStorage.getToken();
     final response = await http.get(
-      url,
+      uri,
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -192,6 +194,32 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     }
 
     return [];
+  }
+
+    /// ✅ Load Divisions from API response
+  static Future<List<Map<String, String>>> fetchDivisions({
+    required String accessToken,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/basic/divisions'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final json = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data'] != null) {
+      return (json['data'] as List).map<Map<String, String>>((item) {
+        return {
+          'label': '${item['divisionName'] ?? ''}',
+          'value': '${item['divisionCode'] ?? ''}',
+        };
+      }).toList();
+    } else {
+      throw Exception(json['message'] ?? 'Failed to load divisions');
+    }
   }
 }
 

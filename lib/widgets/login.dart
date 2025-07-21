@@ -12,6 +12,7 @@ import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/filter_provider.dart';
 import 'package:provider/provider.dart';
+import 'form.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -228,67 +229,74 @@ class _LoginBoxState extends State<LoginBox> {
     _validateOtpAndLogin();
   }
 
-  Future<void> _validateOtpAndLogin() async {
-    String username = _idController.text.trim();
-    String otp = _otpController.text.trim();
-    String captcha = _captchaController.text.trim();
-    String uuid = _captchaUUID;
+ Future<void> _validateOtpAndLogin() async {
+  String username = _idController.text.trim();
+  String otp = _otpController.text.trim();
+  String captcha = _captchaController.text.trim();
+  String uuid = _captchaUUID;
 
-    setState(() {
-      _idError = null;
-      _otpError = null;
-      _captchaError = null;
-    });
+  setState(() {
+    _idError = null;
+    _otpError = null;
+    _captchaError = null;
+  });
 
-    if (isMobileLogin) {
-      if (username.length != 10) {
-        setState(() => _idError = "Enter valid 10-digit mobile number");
-        return;
-      }
-    } else {
-      if (username.isEmpty) {
-        setState(() => _idError = "Enter HRMS ID / User ID");
-        return;
-      }
-    }
-    if (captcha.isEmpty) {
-      setState(() => _captchaError = "Enter captcha");
+  if (isMobileLogin) {
+    if (username.length != 10) {
+      setState(() => _idError = "Enter valid 10-digit mobile number");
       return;
     }
-    if (otp.isEmpty) {
-      setState(() => _otpError = "Enter OTP");
+  } else {
+    if (username.isEmpty) {
+      setState(() => _idError = "Enter HRMS ID / User ID");
       return;
     }
-    try {
-      final loginResponse = await AuthService.validateOtp(
+  }
+  if (captcha.isEmpty) {
+    setState(() => _captchaError = "Enter captcha");
+    return;
+  }
+  if (otp.isEmpty) {
+    setState(() => _otpError = "Enter OTP");
+    return;
+  }
+
+  try {
+    final loginResponse = await AuthService.validateOtp(
       username: username,
       otp: otp,
       uuid: uuid,
       captcha: captcha,
     );
 
-    // Save token
     final accessToken = loginResponse['data']['accessToken'];
+    final authorities = List<String>.from(loginResponse['data']['authorities'] ?? []);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', accessToken);
 
-    // Pass lists to the provider
     final provider = Provider.of<FilterProvider>(context, listen: false);
     provider.setZoneList(List<Map<String, dynamic>>.from(loginResponse['data']['zoneList']));
     provider.setDivisionList(List<Map<String, dynamic>>.from(loginResponse['data']['divisionList']));
     provider.setPriorityList(List<Map<String, dynamic>>.from(loginResponse['data']['priorityList']));
 
-
+    // ✅ Role-based navigation
+    if (authorities.contains("ROLE_MR")) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const DashboardScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } catch (e) {
-      _showError(e.toString());
+    } else if (authorities.any((role) => ["ROLE_ZONE", "ROLE_DIV", "ROLE_RU"].contains(role))) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => QuotaForwardForm(accessToken: accessToken)),
+      );
+    } else {
+      _showError("No appropriate role assigned to your account.");
     }
+  } catch (e) {
+    _showError("Login failed: $e");
   }
+}
 
   @override
   void dispose() {
