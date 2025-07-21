@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/strings.dart';
 
 class FilterProvider extends ChangeNotifier {
@@ -17,6 +18,29 @@ class FilterProvider extends ChangeNotifier {
     AStrings.trainStartDate,
     AStrings.requestedOn,
   ];
+
+  List<Map<String, dynamic>> _zoneList = [];
+  List<Map<String, dynamic>> _divisionList = [];
+  List<Map<String, dynamic>> _priorityList = [];
+
+  List<Map<String, dynamic>> get zoneList => _zoneList;
+  List<Map<String, dynamic>> get divisionList => _divisionList;
+  List<Map<String, dynamic>> get priorityList => _priorityList;
+
+  void setZoneList(List<Map<String, dynamic>> zones) {
+    _zoneList = zones;
+    notifyListeners();
+  }
+
+  void setDivisionList(List<Map<String, dynamic>> divisions) {
+    _divisionList = divisions;
+    notifyListeners();
+  }
+
+  void setPriorityList(List<Map<String, dynamic>> priorities) {
+    _priorityList = priorities;
+    notifyListeners();
+  }
 
   void setSelectedField(String? field) {
     _selectedField = field;

@@ -191,30 +191,30 @@ class AuthService {
   }
 
   /// Validates the OTP and captcha, returns accessToken on success.
-  static Future<String> validateOtp({
-    required String username,
-    required String otp,
-    required String uuid,
-    required String captcha,
-  }) async {
-    final body = {
-      "username": username,
-      "otp": otp,
-      "uuid": uuid,
-      "captcha": captcha,
-    };
-    final response = await http.post(
-      Uri.parse(AppConstants.otpValidateEndpoint),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
-    final json = jsonDecode(response.body);
-    if (response.statusCode == 200 && json['success'] == true) {
-      return json['data']['accessToken'];
-    } else {
-      throw Exception(json['message'] ?? "Login failed");
-    }
+  static Future<Map<String, dynamic>> validateOtp({
+   required String username,
+  required String otp,
+  required String uuid,
+  required String captcha,
+}) async {
+  final body = {
+    "username": username,
+    "otp": otp,
+    "uuid": uuid,
+    "captcha": captcha,
+  };
+  final response = await http.post(
+    Uri.parse(AppConstants.otpValidateEndpoint),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode(body),
+  );
+  final json = jsonDecode(response.body);
+  if (response.statusCode == 200 && json['success'] == true) {
+    return json; // Return the full response so you can access token and lists
+  } else {
+    throw Exception(json['message'] ?? "Login failed");
   }
+}
 }
 
 class QuotaService {

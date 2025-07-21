@@ -10,6 +10,8 @@ import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/filter_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -258,15 +260,24 @@ class _LoginBoxState extends State<LoginBox> {
       return;
     }
     try {
-      final accessToken = await AuthService.validateOtp(
-        username: username,
-        otp: otp,
-        uuid: uuid,
-        captcha: captcha,
-      );
+      final loginResponse = await AuthService.validateOtp(
+      username: username,
+      otp: otp,
+      uuid: uuid,
+      captcha: captcha,
+    );
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', accessToken);
+    // Save token
+    final accessToken = loginResponse['data']['accessToken'];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', accessToken);
+
+    // Pass lists to the provider
+    final provider = Provider.of<FilterProvider>(context, listen: false);
+    provider.setZoneList(List<Map<String, dynamic>>.from(loginResponse['data']['zoneList']));
+    provider.setDivisionList(List<Map<String, dynamic>>.from(loginResponse['data']['divisionList']));
+    provider.setPriorityList(List<Map<String, dynamic>>.from(loginResponse['data']['priorityList']));
+
 
       Navigator.pushReplacement(
         context,
@@ -286,9 +297,104 @@ class _LoginBoxState extends State<LoginBox> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // unchanged login UI...
-    return Container(); // placeholder for brevity
-  }
+@override
+Widget build(BuildContext context) {
+  final isMobile =
+      MediaQuery.of(context).size.width < AppConstants.mobileWidthBreakpoint;
+
+  return Card(
+    elevation: 10,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    margin: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 8),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    // Toggle: Mobile vs HRMS ID
+    Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ChoiceChip(
+          label: const Text("Mobile"),
+          selected: isMobileLogin,
+          onSelected: (v) => setState(() => isMobileLogin = true),
+        ),
+        const SizedBox(width: 8),
+        ChoiceChip(
+          label: const Text("HRMS ID"),
+          selected: !isMobileLogin,
+          onSelected: (v) => setState(() => isMobileLogin = false),
+        ),
+      ],
+    ),
+    const SizedBox(height: 20),
+
+    // Mobile or HRMS field
+    TextField(
+      controller: _idController,
+      keyboardType: isMobileLogin ? TextInputType.phone : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: isMobileLogin ? "Mobile Number" : "HRMS ID / User ID",
+        errorText: _idError,
+      ),
+    ),
+    const SizedBox(height: 16),
+
+    // Captcha image
+    if (_captchaImage != null)
+      Image.memory(_captchaImage!, height: 50),
+    const SizedBox(height: 8),
+
+    // Captcha input
+    TextField(
+      controller: _captchaController,
+      decoration: InputDecoration(
+        labelText: "Captcha",
+        errorText: _captchaError,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: _loadCaptcha,
+        ),
+      ),
+    ),
+    const SizedBox(height: 16),
+
+    // OTP input
+    TextField(
+      controller: _otpController,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: "OTP",
+        errorText: _otpError,
+        suffixIcon: TextButton(
+          onPressed: _isOtpDisabled ? null : () {
+            _getOtp();
+            _startOtpTimer();
+          },
+          child: Text(_isOtpDisabled ? 'Resend in $_seconds' : 'Get OTP'),
+        ),
+      ),
+    ),
+    const SizedBox(height: 24),
+
+    // Login button
+    ElevatedButton(
+      onPressed: _handleLogin,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+      ),
+      child: const Text("Login"),
+    ),
+  ],
+)
+
+        ],
+      ),
+    ),
+  );
+}
 }
