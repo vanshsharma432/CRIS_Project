@@ -4,6 +4,8 @@ import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../constants/strings.dart';
 import '../services/API.dart';
+import 'package:provider/provider.dart';
+import '../providers/filter_provider.dart';
 
 class PreScreenBar extends StatefulWidget {
   final void Function({
@@ -50,8 +52,6 @@ class _PreScreenBarState extends State<PreScreenBar> {
   String? selectedTrainNo;
   bool isCollapsed = false;
 
-  final List<String> divisions = ['NDLS', 'LKO', 'UMB', 'BPL'];
-  final List<String> zones = ['NR', 'WR', 'ER', 'SR'];
   final List<String> mpOptions = ['MP', 'Non-MP'];
   final List<String> statusOptions = ['Approved', 'Pending', 'Rejected'];
 
@@ -133,31 +133,34 @@ class _PreScreenBarState extends State<PreScreenBar> {
     final selectedDate = journeyDate ?? startDate;
     final selectedDateType = journeyDate != null ? AStrings.journeyDate : AStrings.trainStartDate;
 
-    if (selectedDate == null || selectedTrainNo == null || selectedDivision == null) {
+    if (selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill Train Start Date, Train No, and Division.")),
+        const SnackBar(content: Text(".")),
       );
       return;
     }
 
-    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 
-    final fetchedData = await MRApiService.fetchZoneRequests(
-      trainStartDate: formattedDate,
-      trainNo: selectedTrainNo!,
-      divisionCode: selectedDivision!,
-    );
+final fetchedData = await MRApiService.fetchZoneRequests(
+  trainStartDate: selectedDateType == AStrings.trainStartDate ? formattedDate : null,
+  journeyDate: selectedDateType == AStrings.journeyDate ? formattedDate : null,
+  trainNo: selectedTrainNo!,
+  divisionCode: selectedDivision!,
+  zoneCode: selectedZone!,  // pass zone if selected, else null
+  // add other params here if needed
+);
 
-    widget.onSubmit(
-      selectedDate: selectedDate,
-      dateType: selectedDateType,
-      division: selectedDivision,
-      zone: selectedZone,
-      mpInvolvement: selectedMp,
-      status: selectedStatus,
-      trainNo: selectedTrainNo,
-      apiData: fetchedData,
-    );
+  widget.onSubmit(
+    selectedDate: selectedDate,
+    dateType: selectedDateType,
+    division: selectedDivision,
+    zone: selectedZone,
+    mpInvolvement: selectedMp,
+    status: selectedStatus,
+    trainNo: selectedTrainNo,
+    apiData: fetchedData,
+  );
   }
 
   void _handleRefresh() {
@@ -177,6 +180,9 @@ class _PreScreenBarState extends State<PreScreenBar> {
   @override
   Widget build(BuildContext context) {
     final trainNoOptions = trainList;
+    final filterProvider = Provider.of<FilterProvider>(context);
+    final List<String> divisions = filterProvider.divisionList.map((d) => d['divCode'] as String).toList();
+    final List<String> zones = filterProvider.zoneList.map((z) => z['zoneCode'] as String).toList();
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -225,8 +231,6 @@ class _PreScreenBarState extends State<PreScreenBar> {
                   onChanged: (val) {
                     setState(() {
                       selectedDivision = val;
-                      selectedZone = null;
-                      selectedMp = null;
                     });
                   },
                 ),
@@ -238,8 +242,6 @@ class _PreScreenBarState extends State<PreScreenBar> {
                   onChanged: (val) {
                     setState(() {
                       selectedZone = val;
-                      selectedDivision = null;
-                      selectedMp = null;
                     });
                   },
                 ),
@@ -251,8 +253,6 @@ class _PreScreenBarState extends State<PreScreenBar> {
                   onChanged: (val) {
                     setState(() {
                       selectedMp = val;
-                      selectedDivision = null;
-                      selectedZone = null;
                     });
                   },
                 ),
@@ -261,7 +261,11 @@ class _PreScreenBarState extends State<PreScreenBar> {
                   label: AStrings.status,
                   value: selectedStatus,
                   options: statusOptions,
-                  onChanged: (val) => setState(() => selectedStatus = val),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedStatus = val;
+                    });
+                  },
                 ),
                 Text(AStrings.or, style: ATextStyles.bodyText),
                 isLoadingTrainList

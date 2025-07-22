@@ -124,21 +124,29 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
 
   /// List EQ Requests by Zone User
   static Future<List<Map<String, dynamic>>> fetchZoneRequests({
-    required String trainStartDate,
-    required String trainNo,
+    String? trainStartDate,
+    String? journeyDate,
+    String? trainNo,
     required String divisionCode,
+    String? zoneCode, // Ensure zoneCode is optional
   }) async {
-    final url = Uri.parse(
-      '$_baseUrl/auth/zone/getAllSentRequests'
-          '?trainStartDate=$trainStartDate'
-          '&trainNo=$trainNo'
-          '&divisionCode=$divisionCode',
-    );
+    // Build query parameters dynamically
+    final queryParams = {
+      if (trainStartDate != null) 'trainStartDate': trainStartDate,
+      if (journeyDate != null) 'journeyDate': journeyDate,
+      'trainNo': trainNo,
+      'divisionCode': divisionCode,
+      if (zoneCode != null) 'zoneCode': zoneCode, // Include zoneCode if provided
+    };
+
+    // Construct the URI with query parameters
+    final uri = Uri.parse('$_baseUrl/auth/eq/getAllSentRequests')
+        .replace(queryParameters: queryParams);
 
     try {
       final token = await TokenStorage.getToken();
       final response = await http.get(
-        url,
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
         },

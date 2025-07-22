@@ -84,11 +84,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (var controller in _headerSearchControllers) {
       controller.addListener(() => setState(() {}));
     }
-    _fetchMRRequests(); // Trigger initial load
+    // _fetchMRRequests(); // Trigger initial load
   }
 
   List<TrainRequest> get filteredRequests {
-    final sourceList = _apiTrainRequests.isNotEmpty ? _apiTrainRequests : trainRequests;
+    final sourceList = _apiTrainRequests;
 
     return sourceList.where((request) {
       return request.pnr.toString().contains(_headerSearchControllers[0].text) &&
@@ -100,29 +100,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).toList();
   }
 
-  Future<void> _fetchMRRequests() async {
-  try {
-    final apiData = await MRApiService.fetchSentRequestsByMR(
-      trainJourneyDate: '2025-07-02',
-      trainStartDate: '2025-07-02',
-      zoneCode: 'NE',
-      divisionCode: 'UMB',
-      userId: '186',
-      trainNo: '12304',
-    );
+//   Future<void> _fetchMRRequests() async {
+//   try {
+//     final apiData = await MRApiService.fetchSentRequestsByMR(
+//       trainJourneyDate: '2025-07-02',
+//       trainStartDate: '2025-07-02',
+//       zoneCode: 'NE',
+//       divisionCode: 'UMB',
+//       userId: '186',
+//       trainNo: '12304',
+//     );
 
-    _onPreScreenSubmit(
-      dateType: 'trainStartDate',
-      selectedDate: DateTime.parse('2025-07-02'),
-      division: 'UMB',
-      zone: 'NE',
-      trainNo: '12304',
-      apiData: apiData,
-    );
-  } catch (e) {
-    debugPrint('Failed to fetch MR requests: $e');
-  }
-}
+//     _onPreScreenSubmit(
+//       dateType: 'trainStartDate',
+//       selectedDate: DateTime.parse('2025-07-02'),
+//       division: 'UMB',
+//       zone: 'NE',
+//       trainNo: '12304',
+//       apiData: apiData,
+//     );
+//   } catch (e) {
+//     debugPrint('Failed to fetch MR requests: $e');
+//   }
+// }
 
 
   void _onPreScreenSubmit({
