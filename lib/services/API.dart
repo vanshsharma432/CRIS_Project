@@ -92,7 +92,7 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     required int priority,
     required String remarks,
   }) async {
-    final url = Uri.parse('$_baseUrl/auth/mr/takeAction');
+    final url = Uri.parse('$_baseUrl/auth/eq/takeAction');
 
     try {
       final token = await TokenStorage.getToken();
@@ -127,19 +127,17 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     String? trainStartDate,
     String? journeyDate,
     String? trainNo,
-    required String divisionCode,
+    String? divisionCode,
     String? zoneCode, // Ensure zoneCode is optional
   }) async {
-    // Build query parameters dynamically
-    final queryParams = {
-      if (trainStartDate != null) 'trainStartDate': trainStartDate,
-      if (journeyDate != null) 'journeyDate': journeyDate,
-      'trainNo': trainNo,
-      'divisionCode': divisionCode,
-      if (zoneCode != null) 'zoneCode': zoneCode, // Include zoneCode if provided
-    };
+  final queryParams = {
+    if (trainStartDate != null) 'trainStartDate': trainStartDate,
+    if (journeyDate != null) 'journeyDate': journeyDate,
+    if (trainNo != null) 'trainNo': trainNo,
+    if (divisionCode != null) 'divisionCode': divisionCode,
+    if (zoneCode != null) 'zoneCode': zoneCode,
+  };
 
-    // Construct the URI with query parameters
     final uri = Uri.parse('$_baseUrl/auth/eq/getAllSentRequests')
         .replace(queryParameters: queryParams);
 

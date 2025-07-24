@@ -145,10 +145,9 @@ final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 final fetchedData = await MRApiService.fetchZoneRequests(
   trainStartDate: selectedDateType == AStrings.trainStartDate ? formattedDate : null,
   journeyDate: selectedDateType == AStrings.journeyDate ? formattedDate : null,
-  trainNo: selectedTrainNo!,
-  divisionCode: selectedDivision!,
-  zoneCode: selectedZone!,  // pass zone if selected, else null
-  // add other params here if needed
+  trainNo: selectedTrainNo,    // pass null if not selected
+  divisionCode: selectedDivision,  // pass null if not selected
+  zoneCode: selectedZone,      // pass null if not selected
 );
 
   widget.onSubmit(

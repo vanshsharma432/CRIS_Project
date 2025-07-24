@@ -12,7 +12,7 @@ import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/filter_provider.dart';
 import 'package:provider/provider.dart';
-import 'form.dart';
+import 'eq_request_viewer.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -274,23 +274,32 @@ class _LoginBoxState extends State<LoginBox> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', accessToken);
 
+    // Fetch lists in parallel
     final provider = Provider.of<FilterProvider>(context, listen: false);
-    provider.setZoneList(List<Map<String, dynamic>>.from(loginResponse['data']['zoneList']));
-    provider.setDivisionList(List<Map<String, dynamic>>.from(loginResponse['data']['divisionList']));
-    provider.setPriorityList(List<Map<String, dynamic>>.from(loginResponse['data']['priorityList']));
+    await Future.wait([
+      Future(() => provider.setZoneList(List<Map<String, dynamic>>.from(loginResponse['data']['zoneList']))),
+      Future(() => provider.setDivisionList(List<Map<String, dynamic>>.from(loginResponse['data']['divisionList']))),
+      Future(() => provider.setPriorityList(List<Map<String, dynamic>>.from(loginResponse['data']['priorityList']))),
+    ]);
 
-    // ✅ Role-based navigation
+    // Navigate based on role
     if (authorities.contains("ROLE_MR")) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } else if (authorities.any((role) => ["ROLE_ZONE", "ROLE_DIV", "ROLE_RU"].contains(role))) {
+    } else if (authorities.any((role) => ["ROLE_ZONE" , "ROLE_DIV"].contains(role))) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => QuotaForwardForm(accessToken: accessToken)),
       );
-    } else {
+    }
+    else if (authorities.any((role) => ["ROLE_RU"].contains(role))) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => QuotaCheckPage(accessToken: accessToken,)),
+      );
+     }else {
       _showError("No appropriate role assigned to your account.");
     }
   } catch (e) {

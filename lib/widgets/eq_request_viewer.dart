@@ -19,7 +19,7 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
   String? selectedTrainNo;
   String? selectedTrainFull;
 
-  List<Map<String, String>> divisionList = [];
+  List<String> divisionList = [];
   List<String> trainOptions = []; // <-- Change this line
   List<Map<String, dynamic>> eqResults = [];
 
@@ -50,19 +50,25 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
     }
   }
 
-  Future<void> _loadDivisions() async {
-    setState(() => isDivisionLoading = true);
-    try {
-      final result = await MRApiService.fetchDivisions(accessToken: widget.accessToken);
-      setState(() {
-        divisionList = result;
-      });
-    } catch (e) {
-      setState(() => errorMessage = 'Division load error: $e');
-    } finally {
-      setState(() => isDivisionLoading = false);
-    }
+Future<void> _loadDivisions() async {
+  setState(() => isDivisionLoading = true);
+  try {
+    final result = await MRApiService.fetchDivisions(accessToken: widget.accessToken);
+
+    setState(() {
+      divisionList = result
+          .map<String>((e) => e['divCode'] ?? '')
+          .where((code) => code.isNotEmpty)
+          .toList();
+    });
+  } catch (e) {
+    setState(() => errorMessage = 'Division load error: $e');
+  } finally {
+    setState(() => isDivisionLoading = false);
   }
+}
+
+
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -110,15 +116,15 @@ class _QuotaForwardFormState extends State<QuotaForwardForm> {
       Expanded(
         child: isDivisionLoading
             ? const CircularProgressIndicator()
-            : DropdownButtonFormField<String>(
-                value: selectedDivision,
-                decoration: const InputDecoration(labelText: 'Division'),
-                items: divisionList
-                    .map((e) =>
-                        DropdownMenuItem(value: e['value'], child: Text(e['label']!)))
-                    .toList(),
-                onChanged: (val) => setState(() => selectedDivision = val),
-              ),
+                :DropdownButtonFormField<String>(
+  value: selectedDivision,
+  decoration: const InputDecoration(labelText: 'Division'),
+  items: divisionList
+      .map((code) => DropdownMenuItem(value: code, child: Text(code)))
+      .toList(),
+  onChanged: (val) => setState(() => selectedDivision = val),
+),
+
       ),
       const SizedBox(width: 10),
       Expanded(

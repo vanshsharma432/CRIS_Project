@@ -9,7 +9,7 @@ import '../theme/text_styles.dart';
 
 class QuotaCheckPage extends StatefulWidget {
   final String accessToken;
-  const QuotaCheckPage({super.key, required this.accessToken});
+  const QuotaCheckPage({required this.accessToken, Key? key}) : super(key: key);
 
   @override
   State<QuotaCheckPage> createState() => _QuotaCheckPageState();

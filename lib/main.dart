@@ -100,29 +100,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).toList();
   }
 
-//   Future<void> _fetchMRRequests() async {
-//   try {
-//     final apiData = await MRApiService.fetchSentRequestsByMR(
-//       trainJourneyDate: '2025-07-02',
-//       trainStartDate: '2025-07-02',
-//       zoneCode: 'NE',
-//       divisionCode: 'UMB',
-//       userId: '186',
-//       trainNo: '12304',
-//     );
-
-//     _onPreScreenSubmit(
-//       dateType: 'trainStartDate',
-//       selectedDate: DateTime.parse('2025-07-02'),
-//       division: 'UMB',
-//       zone: 'NE',
-//       trainNo: '12304',
-//       apiData: apiData,
-//     );
-//   } catch (e) {
-//     debugPrint('Failed to fetch MR requests: $e');
-//   }
-// }
+  //   Future<void> _fetchMRRequests() async {
+  //   try {
+  //     final apiData = await MRApiService.fetchSentRequestsByMR(
+  //       trainJourneyDate: '2025-07-02',
+  //       trainStartDate: '2025-07-02',
+  //       zoneCode: 'NE',
+  //       divisionCode: 'UMB',
+  //       userId: '186',
+  //       trainNo: '12304',
+  //     );
+  //
+  //     _onPreScreenSubmit(
+  //       dateType: 'trainStartDate',
+  //       selectedDate: DateTime.parse('2025-07-02'),
+  //       division: 'UMB',
+  //       zone: 'NE',
+  //       trainNo: '12304',
+  //       apiData: apiData,
+  //     );
+  //   } catch (e) {
+  //     debugPrint('Failed to fetch MR requests: $e');
+  //   }
+  // }
 
 
   void _onPreScreenSubmit({
@@ -146,6 +146,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _apiTrainRequests = apiData.map((json) => TrainRequest.fromJson(json)).toList();
           } else {
             _apiTrainRequests = [];
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("No data found for the selected filters.")),
+            );
           }
         });
       }
