@@ -22,7 +22,7 @@ ThemeData appTheme = ThemeData(
     error: AColors.error,
   ),
   checkboxTheme: CheckboxThemeData(
-    fillColor: MaterialStateProperty.all(AColors.primary),
+    fillColor: WidgetStateProperty.all(AColors.primary),
   ),
   inputDecorationTheme: const InputDecorationTheme(
     filled: true,

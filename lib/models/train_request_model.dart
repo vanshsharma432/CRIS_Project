@@ -111,15 +111,15 @@ class TrainRequest {
       requestedOn: parseDate(json['createdOn']),
       trainStartDate: parseDate(json['trainStartDate']),
       trainJourneyDate: parseDate(json['jrnyDate']),
-      sourceStation: json['sourceStation'] ?? '',     // Not in response
+      sourceStation: json['boardingStation'] ?? '',     // Not in response
       destination: json['destination'] ?? '',         // Not in response
       requestedBy: json['requestedBy'] ?? '',         // Not in response
-      zone: json['zone'] ?? '',                       // May be set manually
-      division: json['division'] ?? '',               // May be set manually
+      zone: json['assignedToZone'] ?? '',                       // May be set manually
+      division: json['assignedToDiv'] ?? '',               // May be set manually
       lastUpdated: DateTime.now(),                    // Not in response
       pnr: int.tryParse(json['pnr'].toString()) ?? 0,
       trainNo: int.tryParse(json['trainNo'].toString()) ?? 0,
-      seatClass: json['seatClass'] ?? '',             // Not in response
+      seatClass: json['journeyClass'] ?? '',             // Not in response
       isSelected: false,
       eqRequestNo: json['eqRequestNo'] ?? '',
       priority: json['priority'] ?? 0,

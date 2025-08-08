@@ -1,5 +1,8 @@
+import 'package:dashboard_final/constants/strings.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
+import '../providers/filter_provider.dart';
 
 class SearchFilterRow extends StatelessWidget {
   final TextEditingController pnrController;
@@ -16,7 +19,6 @@ class SearchFilterRow extends StatelessWidget {
     required this.statusController,
     required this.requestedByController,
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -53,6 +55,7 @@ class SearchFilterRow extends StatelessWidget {
   }
 
   Widget _buildTextField(TextEditingController controller) {
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: TextField(

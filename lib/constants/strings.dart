@@ -6,11 +6,11 @@ class AStrings {
   // Table headers (used in both desktop header and allColumns)
   static const status = 'Status';
   static const passengers = 'Passengers';
-  static const trainInfo = 'Train No. (Boarding at)';
+  static const trainInfo = 'Train No.\n(Boarding at)';
   static const pnrJourney = 'PNR (Journey Date)';
   static const startDate = 'Start Date';
-  static const requestedBy = 'Requested by (Requested on)';
-  static const divisionZone = 'Division (Zone)';
+  static const requestedBy = 'Requested by\n(Requested on)';
+  static const divisionZone = 'Division\n(Zone)';
   static const select = 'Select';
   static const options = 'options';
 
@@ -123,9 +123,11 @@ class AppConstants {
 
   // Priority options
   static const List<Map<String, dynamic>> priorityOptions = [
-    {'value': 1, 'label': '1 – Immediate'},
-    {'value': 2, 'label': '2 – Very Urgent'},
-    {'value': 3, 'label': '3 – Urgent'},
+    {'value': 1, 'label': '1 – Very High'},
+    {'value': 2, 'label': '2 – High'},
+    {'value': 3, 'label': '3 – Moderate'},
+    {'value': 4, 'label': '4 – Low'},
+    {'value': 5, 'label': '5 – Very Low'},
   ];
 
   // UI

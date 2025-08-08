@@ -1,7 +1,7 @@
-// lib/widgets/pnr.dart
-
+import 'package:dashboard_final/widgets/login.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/API.dart';
 import '../constants/strings.dart';
 import '../theme/colors.dart';
@@ -9,14 +9,16 @@ import '../theme/text_styles.dart';
 
 class QuotaCheckPage extends StatefulWidget {
   final String accessToken;
-  const QuotaCheckPage({required this.accessToken, Key? key}) : super(key: key);
+  const QuotaCheckPage({required this.accessToken, super.key});
 
   @override
   State<QuotaCheckPage> createState() => _QuotaCheckPageState();
 }
 
 class _QuotaCheckPageState extends State<QuotaCheckPage> {
+  String? pnrErrorMessage;
   final TextEditingController _pnrController = TextEditingController();
+  Map<int, String?> passengerNameErrors = {};
   bool showQuotaReport = false;
   bool showError = false;
   bool isLoading = false;
@@ -26,70 +28,125 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
 
   Map<String, dynamic>? currentPNRData;
   OverlayEntry? _overlayEntry;
+  bool _hasAnyInvalidPassengerName() {
+    bool hasError = false;
+    if (currentPNRData == null) return false;
+
+    final passengers = currentPNRData!['passengers'] as List;
+
+    for (int i = 0; i < passengers.length; i++) {
+      final expected = passengers[i]['name'].toString().trim().toLowerCase();
+      final entered =
+          passengerNameControllers[i]?.text.trim().toLowerCase() ?? '';
+
+      if (entered.isEmpty || entered != expected) {
+        passengerNameErrors[i] = 'Name does not match with PNR';
+        hasError = true;
+      } else {
+        passengerNameErrors.remove(i); // Clear if corrected
+      }
+    }
+
+    setState(() {}); // Update error messages in UI
+    return hasError;
+  }
 
   Future<void> checkPNR() async {
     String pnr = _pnrController.text.trim();
     if (pnr.isEmpty) {
-      _showErrorMessage('Please enter PNR number');
+      setState(() {
+        pnrErrorMessage = 'Please enter a PNR number';
+        showError = true;
+        isLoading = false;
+        showQuotaReport = false;
+      });
       return;
     }
+
     setState(() {
       isLoading = true;
       showQuotaReport = false;
       showError = false;
+      pnrErrorMessage = null;
       currentPNRData = null;
     });
+
     try {
       final pnrData = await QuotaService.fetchPNRStatus(
         accessToken: widget.accessToken,
         pnrNumber: pnr,
       );
-      if (pnrData != null && pnrData['pnrNumber'] != null) {
+
+      if (pnrData == null || pnrData['pnrNumber'] == null) {
         setState(() {
-          currentPNRData = {
-            'pnr': pnrData['pnrNumber'] ?? '',
-            'trainName': pnrData['trainName'] ?? '',
-            'trainNumber': pnrData['trainNumber'] ?? '',
-            'dateOfJourney': pnrData['dateOfJourney'] ?? '',
-            'passengers': (pnrData['passengerList'] as List?)
-                    ?.map(
-                      (passenger) => {
-                        'sNo': passenger['passengerSerialNumber'],
-                        'name': passenger['passengerName'],
-                        'age': passenger['passengerAge'],
-                        'gender': passenger['passengerGender'],
-                        'bookingStatus': passenger['bookingStatusDetails'],
-                        'currentStatus': passenger['currentStatusDetails'],
-                      },
-                    )
-                    .toList() ??
-                [],
-          };
-          showQuotaReport = true;
-          showError = false;
+          pnrErrorMessage = 'PNR not found';
+          showError = true;
+          showQuotaReport = false;
           isLoading = false;
-          passengerRelationships.clear();
-          passengerNameControllers.clear();
-          for (int i = 0; i < currentPNRData!['passengers'].length; i++) {
-            passengerRelationships[i] = null;
-            passengerNameControllers[i] = TextEditingController();
-          }
         });
-        _showErrorMessage('PNR details fetched successfully!', success: true);
+        return;
       }
+
+      // Check for CAN status
+      bool isCancelled = (pnrData['passengerList'] as List).any(
+        (passenger) =>
+            (passenger['currentStatus'] ?? '').toString().toUpperCase() ==
+            'CAN',
+      );
+
+      if (isCancelled) {
+        setState(() {
+          pnrErrorMessage = 'Your PNR request has been cancelled';
+          showError = true;
+          showQuotaReport = false;
+          isLoading = false;
+        });
+        return;
+      }
+      setState(() {
+        currentPNRData = {
+          'pnr': pnrData['pnrNumber'] ?? '',
+          'trainName': pnrData['trainName'] ?? '',
+          'trainNumber': pnrData['trainNumber'] ?? '',
+          'dateOfJourney': pnrData['dateOfJourney'] ?? '',
+          'passengers': (pnrData['passengerList'] as List)
+              .map(
+                (passenger) => {
+                  'sNo': passenger['passengerSerialNumber'],
+                  'name': passenger['passengerName'],
+                  'age': passenger['passengerAge'],
+                  'gender': passenger['passengerGender'],
+                  'bookingStatus': passenger['bookingStatusDetails'],
+                  'currentStatus': passenger['currentStatusDetails'],
+                },
+              )
+              .toList(),
+        };
+        showQuotaReport = true;
+        showError = false;
+        isLoading = false;
+        passengerRelationships.clear();
+        passengerNameControllers.clear();
+        passengerNameErrors.clear();
+        for (int i = 0; i < currentPNRData!['passengers'].length; i++) {
+          passengerRelationships[i] = null;
+          passengerNameControllers[i] = TextEditingController();
+        }
+      });
+
+      _showErrorMessage('PNR details fetched successfully!', success: true);
     } catch (e) {
       setState(() {
         showError = true;
-        showQuotaReport = false;
-        currentPNRData = null;
+        pnrErrorMessage = 'Something went wrong: ${e.toString()}';
         isLoading = false;
       });
-      _showErrorMessage(e.toString());
     }
   }
 
   void _showErrorMessage(String message, {bool success = false}) {
-    final isMobile = MediaQuery.of(context).size.width < AppConstants.mobileWidthBreakpoint;
+    final isMobile =
+        MediaQuery.of(context).size.width < AppConstants.mobileWidthBreakpoint;
     if (isMobile) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -142,7 +199,11 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _removeOverlay,
-                  child: const Icon(Icons.close, color: AColors.white, size: 18),
+                  child: const Icon(
+                    Icons.close,
+                    color: AColors.white,
+                    size: 18,
+                  ),
                 ),
               ],
             ),
@@ -186,6 +247,12 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
 
   void applyQuota() {
     if (currentPNRData == null || showError) return;
+
+    if (_hasAnyInvalidPassengerName()) {
+      _showTopRightError("Incorrect passenger name");
+      return;
+    }
+
     bool allRelationshipsSelected = true;
     for (int i = 0; i < currentPNRData!['passengers'].length; i++) {
       if (passengerRelationships[i] == null) {
@@ -193,12 +260,14 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
         break;
       }
     }
+
     if (!allRelationshipsSelected || selectedPriority == null) {
       _showErrorMessage(
         'Please select relationship for all passengers and priority',
       );
       return;
     }
+
     submitQuotaRequest();
   }
 
@@ -233,19 +302,37 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > AppConstants.wideWidthBreakpoint;
+    final isWide =
+        MediaQuery.of(context).size.width > AppConstants.wideWidthBreakpoint;
 
     return Scaffold(
       backgroundColor: AColors.betterLightBlue,
       appBar: AppBar(
-        title: Text(
-          'PNR Status',
-          style: ATextStyles.headingMedium,
-        ),
+        title: Text('PNR Status', style: ATextStyles.headingMedium),
         centerTitle: true,
         backgroundColor: AColors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AColors.primary),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              // Clear saved token (if using SharedPreferences)
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('auth_token');
+
+              // Navigate to LoginScreen, replacing entire stack
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -302,10 +389,7 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
             valueColor: AlwaysStoppedAnimation<Color>(AColors.primary),
           ),
           const SizedBox(height: 16),
-          Text(
-            'Fetching PNR Details...',
-            style: ATextStyles.bodyText,
-          ),
+          Text('Fetching PNR Details...', style: ATextStyles.bodyText),
           const SizedBox(height: 8),
           Text(
             'Please wait while we retrieve your ticket information',
@@ -319,7 +403,7 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
 
   Widget _buildPNRInputCard() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AColors.white,
         borderRadius: BorderRadius.circular(16),
@@ -334,10 +418,7 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'PNR Number',
-            style: ATextStyles.headingMedium,
-          ),
+          Text('PNR Number', style: ATextStyles.headingMedium),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -348,12 +429,16 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
                   maxLength: 10,
                   enabled: !isLoading,
                   decoration: InputDecoration(
-                    hintText: 'Enter 10 digit PNR number',
+                    hintText: 'Enter 10 digit PNR',
                     counterText: '',
                     prefixIcon: Icon(
                       Icons.confirmation_number,
                       color: AColors.primary,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 16,
+                    ), // ✅ Added
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: AColors.borderLight),
@@ -372,17 +457,18 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
                     filled: true,
                     fillColor: AColors.white,
                   ),
+
                   style: ATextStyles.bodyText,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               ElevatedButton(
                 onPressed: isLoading ? null : checkPNR,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AColors.primary,
                   foregroundColor: AColors.white,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
+                    horizontal: 16,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
@@ -422,20 +508,16 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
           Icon(Icons.error_outline, color: AColors.error, size: 60),
           const SizedBox(height: 16),
           Text(
-            'PNR Not Found',
-            style: ATextStyles.headingMedium.copyWith(color: AColors.error),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'The PNR number "${_pnrController.text}" was not found in our records.',
+            pnrErrorMessage ?? 'Something went wrong',
             textAlign: TextAlign.center,
-            style: ATextStyles.bodyText,
+            style: ATextStyles.headingMedium.copyWith(color: AColors.error),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
               setState(() {
                 showError = false;
+                pnrErrorMessage = null;
                 _pnrController.clear();
               });
             },
@@ -550,7 +632,11 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, color: AColors.primary, size: 20),
+                    Icon(
+                      Icons.calendar_today,
+                      color: AColors.primary,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,6 +658,28 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
     );
   }
 
+  void _validatePassengerName(int index) {
+    if (currentPNRData == null) return;
+
+    final expectedName = currentPNRData!['passengers'][index]['name']
+        .toString()
+        .trim()
+        .toLowerCase();
+
+    final controller = passengerNameControllers[index];
+    if (controller == null) return;
+
+    final enteredName = controller.text.trim().toLowerCase();
+
+    setState(() {
+      if (enteredName.isEmpty || enteredName == expectedName) {
+        passengerNameErrors[index] = null;
+      } else {
+        passengerNameErrors[index] = 'Name does not match with PNR';
+      }
+    });
+  }
+
   Widget _buildPassengerDetailsSection(bool isWide) {
     if (currentPNRData == null) return const SizedBox();
     final passengers = currentPNRData!['passengers'] as List;
@@ -588,63 +696,85 @@ class _QuotaCheckPageState extends State<QuotaCheckPage> {
         const SizedBox(height: 16),
         ...List.generate(passengers.length, (i) {
           final passenger = passengers[i];
+          if (passengerNameControllers[i] != null &&
+              !passengerNameControllers[i]!.hasListeners) {
+            passengerNameControllers[i]!.addListener(() {
+              _validatePassengerName(i);
+            });
+          }
           return Card(
             color: AColors.white,
             margin: const EdgeInsets.only(bottom: 12),
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 120,
-                    child: TextFormField(
-                      controller: passengerNameControllers[i],
-                      decoration: InputDecoration(
-                        hintText: "____",
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 2,
-                          horizontal: 8,
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: passengerNameControllers[i],
+                          onChanged: (_) => _validatePassengerName(i),
+                          decoration: InputDecoration(
+                            hintText: "Enter Passenger Name",
+                            border: const UnderlineInputBorder(),
+                            enabledBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: AColors.primary),
+                            ),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 8,
+                            ),
+                            fillColor: AColors.white,
+                            filled: true,
+                            errorText: passengerNameErrors[i],
+                          ),
+                          style: ATextStyles.passengerValue,
                         ),
-                        fillColor: AColors.white,
-                        filled: true,
                       ),
-                      style: ATextStyles.passengerValue,
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        " (${passenger['age']} ${passenger['gender']})",
+                        style: ATextStyles.passengerLabel,
+                      ),
+                    ],
                   ),
-                  Text(
-                    " (${passenger['age']} ${passenger['gender']})",
-                    style: ATextStyles.passengerLabel,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: AColors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AColors.borderLight),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DropdownButtonFormField<String>(
+                      value: passengerRelationships[i],
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                        border: UnderlineInputBorder(),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: AColors.primary),
+                        ),
                       ),
-                      child: DropdownButton<String>(
-                        value: passengerRelationships[i],
-                        hint: const Text('Relationship'),
-                        isExpanded: true,
-                        underline: SizedBox(),
-                        items: AppConstants.relationshipOptions
-                            .map(
-                              (rel) => DropdownMenuItem(
-                                value: rel,
-                                child: Text(rel, style: ATextStyles.bodyText),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            passengerRelationships[i] = val;
-                          });
-                        },
-                      ),
+                      hint: const Text('Relationship'),
+                      items: AppConstants.relationshipOptions
+                          .map(
+                            (rel) => DropdownMenuItem(
+                              value: rel,
+                              child: Text(rel, style: ATextStyles.bodyText),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          passengerRelationships[i] = val;
+                        });
+                      },
                     ),
                   ),
                 ],

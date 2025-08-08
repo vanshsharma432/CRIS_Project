@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/train_request_model.dart';
 import 'data/sample_data.dart';
 import 'providers/sort_provider.dart';
@@ -18,7 +19,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SortProvider()),
-        ChangeNotifierProvider(create: (_) => FilterProvider()), // <-- Add this line
+        ChangeNotifierProvider(create: (_) => FilterProvider()),
       ],
       child: const MyApp(),
     ),
@@ -43,11 +44,13 @@ class MyApp extends StatelessWidget {
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: AColors.brandeisBlue,
-          titleTextStyle: ATextStyles.headingMedium.copyWith(color: AColors.white),
+          titleTextStyle: ATextStyles.headingMedium.copyWith(
+            color: AColors.white,
+          ),
           iconTheme: const IconThemeData(color: AColors.white),
         ),
         checkboxTheme: CheckboxThemeData(
-          fillColor: MaterialStateProperty.all(AColors.secondary),
+          fillColor: WidgetStateProperty.all(AColors.secondary),
         ),
       ),
       home: const LoginScreen(),
@@ -63,8 +66,10 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final List<TextEditingController> _headerSearchControllers =
-  List.generate(8, (_) => TextEditingController());
+  final List<TextEditingController> _headerSearchControllers = List.generate(
+    8,
+    (_) => TextEditingController(),
+  );
 
   List<TrainRequest> _apiTrainRequests = [];
 
@@ -91,12 +96,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final sourceList = _apiTrainRequests;
 
     return sourceList.where((request) {
-      return request.pnr.toString().contains(_headerSearchControllers[0].text) &&
-          request.trainStartDate.toString().contains(_headerSearchControllers[1].text) &&
-          request.trainNo.toString().contains(_headerSearchControllers[2].text) &&
-          request.division.toLowerCase().contains(_headerSearchControllers[3].text.toLowerCase()) &&
-          request.requestedBy.toLowerCase().contains(_headerSearchControllers[5].text.toLowerCase()) &&
-          request.currentStatus.toLowerCase().contains(_headerSearchControllers[6].text.toLowerCase());
+      return request.pnr.toString().contains(
+            _headerSearchControllers[0].text,
+          ) &&
+          request.trainStartDate.toString().contains(
+            _headerSearchControllers[1].text,
+          ) &&
+          request.trainNo.toString().contains(
+            _headerSearchControllers[2].text,
+          ) &&
+          request.seatClass.toLowerCase().contains(
+            _headerSearchControllers[3].text.toLowerCase(),
+          ) &&
+          request.division.toLowerCase().contains(
+            _headerSearchControllers[4].text.toLowerCase(),
+          ) &&
+          request.requestedBy.toLowerCase().contains(
+            _headerSearchControllers[6].text.toLowerCase(),
+          ) &&
+          request.currentStatus.toLowerCase().contains(
+            _headerSearchControllers[7].text.toLowerCase(),
+          );
     }).toList();
   }
 
@@ -124,7 +144,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   //   }
   // }
 
-
   void _onPreScreenSubmit({
     required String dateType,
     required DateTime selectedDate,
@@ -143,11 +162,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Convert API data to TrainRequest model
           if (apiData != null && apiData.isNotEmpty) {
-            _apiTrainRequests = apiData.map((json) => TrainRequest.fromJson(json)).toList();
+            _apiTrainRequests = apiData
+                .map((json) => TrainRequest.fromJson(json))
+                .toList();
           } else {
             _apiTrainRequests = [];
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("No data found for the selected filters.")),
+              const SnackBar(
+                content: Text("No data found for the selected filters."),
+              ),
             );
           }
         });
@@ -200,11 +223,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     totalCount = sortedRequests.length;
     startIndex = currentPage * itemsPerPage;
     endIndex = (startIndex + itemsPerPage).clamp(0, totalCount);
-    final visibleItems = sortedRequests.skip(startIndex).take(itemsPerPage).toList();
+    final visibleItems = sortedRequests
+        .skip(startIndex)
+        .take(itemsPerPage)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(AStrings.dashboardTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              // Clear saved token (if using SharedPreferences)
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('auth_token');
+
+              // Navigate to LoginScreen, replacing entire stack
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -234,7 +280,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           totalCount: totalCount,
                           onColumnTapped: (index) {
                             setState(() {
-                              activeSearchColumn = activeSearchColumn == index ? null : index;
+                              activeSearchColumn = activeSearchColumn == index
+                                  ? null
+                                  : index;
                             });
 
                             final fieldMap = {
@@ -257,19 +305,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: TrainRequestListView(
                           allRequests: visibleItems,
                           onUpdate: _updateTrainRequest,
-                          onPaginationChanged: ({
-                            required int startIndex,
-                            required int endIndex,
-                            required int totalCount,
-                          }) {
-                            if (mounted) {
-                              setState(() {
-                                this.startIndex = startIndex;
-                                this.endIndex = endIndex;
-                                this.totalCount = totalCount;
-                              });
-                            }
-                          },
+                          onPaginationChanged:
+                              ({
+                                required int startIndex,
+                                required int endIndex,
+                                required int totalCount,
+                              }) {
+                                if (mounted) {
+                                  setState(() {
+                                    this.startIndex = startIndex;
+                                    this.endIndex = endIndex;
+                                    this.totalCount = totalCount;
+                                  });
+                                }
+                              },
                         ),
                       ),
                     ],

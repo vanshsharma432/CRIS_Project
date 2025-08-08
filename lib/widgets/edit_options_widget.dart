@@ -1,14 +1,13 @@
+import 'package:dashboard_final/constants/strings.dart';
 import 'package:flutter/material.dart';
 import '../services/API.dart'; // Import your API service
 import '../theme/colors.dart';
-import '../theme/text_styles.dart';
 
 class EditOptionsWidget extends StatefulWidget {
   final int initialPriority;
   final String eqRequestNo; // Add this parameter
   final ValueChanged<int> onPriorityChanged;
   final VoidCallback onRejected;
-
   const EditOptionsWidget({
     super.key,
     required this.initialPriority,
@@ -24,7 +23,6 @@ class EditOptionsWidget extends StatefulWidget {
 class _EditOptionsWidgetState extends State<EditOptionsWidget> {
   bool isSaved = false;
   bool isLoading = false;
-
   Future<void> _handlePriorityChange(int priority) async {
     setState(() => isLoading = true);
 
@@ -77,10 +75,10 @@ class _EditOptionsWidgetState extends State<EditOptionsWidget> {
           onSelected: _handleSelected,
           itemBuilder: (context) => [
             ...List.generate(
-              6,
+              5,
               (index) => PopupMenuItem(
                 value: index + 1,
-                child: Text("Priority ${index + 1}"),
+                child: Text("${AppConstants.priorityOptions[index]['label']}"),
               ),
             ),
             const PopupMenuDivider(),

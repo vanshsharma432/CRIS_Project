@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../constants/strings.dart';
 
 class FilterProvider extends ChangeNotifier {
@@ -17,6 +16,8 @@ class FilterProvider extends ChangeNotifier {
     AStrings.remarksByRailways,
     AStrings.trainStartDate,
     AStrings.requestedOn,
+    AStrings.seatClass,
+    AStrings.requestedByName,
   ];
 
   List<Map<String, dynamic>> _zoneList = [];
@@ -60,26 +61,72 @@ class FilterProvider extends ChangeNotifier {
   }
 
   bool matches(dynamic item) {
-    if (_selectedField == null || _filterValue == null || _filterValue.toString().isEmpty) return true;
+    if (_selectedField == null ||
+        _filterValue == null ||
+        _filterValue.toString().isEmpty) {
+      return true;
+    }
 
-    final filterText = _filterValue.toString().toLowerCase();
+    // NOTE: This corrected version handles Text, Date, and Range filters
+    // as discussed in the previous reviews.
 
     try {
+      // --- Date Filtering ---
+      if (_filterValue is DateTime) {
+        DateTime filterDate = _filterValue as DateTime;
+        DateTime? itemDate;
+        if (_selectedField == AStrings.trainStartDate)
+          itemDate = item.trainStartDate;
+        if (_selectedField == AStrings.requestedOn) itemDate = item.requestedOn;
+        if (itemDate == null) return false;
+        return itemDate.year == filterDate.year &&
+            itemDate.month == filterDate.month &&
+            itemDate.day == filterDate.day;
+      }
+
+      // --- Numeric Range Filtering ---
+      if (_filterValue is Map) {
+        final valueMap = _filterValue as Map<String, dynamic>;
+        final min = valueMap['min'] as int?;
+        final max = valueMap['max'] as int?;
+        int? itemValue;
+        if (_selectedField == AStrings.total) itemValue = item.totalPassengers;
+        if (_selectedField == AStrings.requested)
+          itemValue = item.requestedPassengers;
+        if (_selectedField == AStrings.accepted)
+          itemValue = item.acceptedPassengers;
+        if (itemValue == null) return false;
+        final minOK = min == null || itemValue >= min;
+        final maxOK = max == null || itemValue <= max;
+        return minOK && maxOK;
+      }
+
+      // --- Text Filtering (Corrected) ---
+      final filterText = _filterValue.toString().toLowerCase();
+
       switch (_selectedField) {
-        case AStrings.total:
-          return item.totalPassengers.toString().contains(filterText);
-        case AStrings.requested:
-          return item.requestedPassengers.toString().contains(filterText);
-        case AStrings.accepted:
-          return item.acceptedPassengers.toString().contains(filterText);
         case AStrings.currentStatus:
           return item.currentStatus.toLowerCase().contains(filterText);
         case AStrings.remarksByRailways:
           return item.remarksByRailways.toLowerCase().contains(filterText);
-        case AStrings.trainStartDate:
-          return item.trainStartDate.toString().contains(filterText);
-        case AStrings.requestedOn:
-          return item.requestedOn.toString().contains(filterText);
+        case AStrings.requestedByName:
+          return item.requestedBy.toLowerCase().contains(filterText);
+
+        // ✅ FIXED: Corrected case-sensitivity for "Class"
+        case AStrings.seatClass:
+          return item.journeyClass.toString().toLowerCase().contains(
+            filterText,
+          );
+
+        // ✅ ADDED: Missing case for "Division"
+        case AStrings.division:
+          return item.division.toString().toLowerCase().contains(filterText);
+
+        // ✅ ADDED: Missing case for "Zone"
+        case AStrings.zone:
+          return item.zone.toString().toLowerCase().contains(filterText);
+
+        // If no text field matches, assume it's not a text filter
         default:
           return true;
       }
@@ -87,8 +134,6 @@ class FilterProvider extends ChangeNotifier {
       return true;
     }
   }
-
-  // 👇 New methods to support filter_widget.dart logic
 
   void updateSelectedField(String? field) => setSelectedField(field);
 

@@ -2,23 +2,22 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constants/tokens.dart';
 import '../constants/strings.dart';
-
+const String baseUrl = 'http://10.64.24.46:8080/quota-backend';
 class MRApiService {
-  static const String _baseUrl = 'http://10.64.24.46:8080/quota-backend';
 
   /// Fetch single EQ Request by Request No
   static Future<Map<String, dynamic>?> fetchEQRequest(
-      String eqRequestNo) async {
+    String eqRequestNo,
+  ) async {
     final url = Uri.parse(
-        '$_baseUrl/auth/mr/getEQRequest?eqRequestNo=$eqRequestNo');
+      '$baseUrl/auth/mr/getEQRequest?eqRequestNo=$eqRequestNo',
+    );
 
     try {
       final token = await TokenStorage.getToken();
       final response = await http.post(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -38,53 +37,55 @@ class MRApiService {
     return null;
   }
 
-
   /// List EQ Requests by MR User
-static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
-  required String trainStartDate,
-  required String trainNo,
-  required String divisionCode,
-  String? trainJourneyDate,
-  String? zoneCode,
-  String? userId,
-}) async {
-  final queryParams = {
-    'trainStartDate': trainStartDate,
-    'trainNo': trainNo,
-    'divisionCode': divisionCode,
-    if (trainJourneyDate != null) 'trainJourneyDate': trainJourneyDate,
-    if (zoneCode != null) 'zoneCode': zoneCode,
-    if (userId != null) 'userId': userId,
-  };
+  static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
+    required String trainStartDate,
+    required String trainNo,
+    required String divisionCode,
+    String? trainJourneyDate,
+    String? zoneCode,
+    String? userId,
+  }) async {
+    final queryParams = {
+      'trainStartDate': trainStartDate,
+      'trainNo': trainNo,
+      'divisionCode': divisionCode,
+      if (trainJourneyDate != null) 'trainJourneyDate': trainJourneyDate,
+      if (zoneCode != null) 'zoneCode': zoneCode,
+      if (userId != null) 'userId': userId,
+    };
 
-  final uri = Uri.parse('$_baseUrl/auth/eq/getAllSentRequests')
-      .replace(queryParameters: queryParams);
+    final uri = Uri.parse(
+      '$baseUrl/auth/eq/getAllSentRequests',
+    ).replace(queryParameters: queryParams);
 
-  try {
-    final token = await TokenStorage.getToken();
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final token = await TokenStorage.getToken();
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      if (jsonResponse['success'] == true) {
-        return List<Map<String, dynamic>>.from(jsonResponse['data']);
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true &&
+            jsonResponse['data'] != null &&
+            jsonResponse['data']['eqRequestList'] != null) {
+          return List<Map<String, dynamic>>.from(
+            jsonResponse['data']['eqRequestList'],
+          );
+        } else {
+          print("API Error: ${jsonResponse['message']}");
+        }
       } else {
-        print("API Error: ${jsonResponse['message']}");
+        print("HTTP Error: ${response.statusCode}");
       }
-    } else {
-      print("HTTP Error: ${response.statusCode}");
+    } catch (e) {
+      print("Exception in fetchSentRequestsByMR: $e");
     }
-  } catch (e) {
-    print("Exception in fetchSentRequestsByMR: $e");
-  }
 
-  return [];
-}
+    return [];
+  }
 
   /// Change Priority by MR Cell
   static Future<bool> updatePriority({
@@ -92,7 +93,7 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     required int priority,
     required String remarks,
   }) async {
-    final url = Uri.parse('$_baseUrl/auth/eq/takeAction');
+    final url = Uri.parse('$baseUrl/auth/eq/takeAction');
 
     try {
       final token = await TokenStorage.getToken();
@@ -107,7 +108,7 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
             "eqRequestNo": eqRequestNo,
             "priority": priority,
             "remarks": remarks,
-          }
+          },
         ]),
       );
 
@@ -130,30 +131,32 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     String? divisionCode,
     String? zoneCode, // Ensure zoneCode is optional
   }) async {
-  final queryParams = {
-    if (trainStartDate != null) 'trainStartDate': trainStartDate,
-    if (journeyDate != null) 'journeyDate': journeyDate,
-    if (trainNo != null) 'trainNo': trainNo,
-    if (divisionCode != null) 'divisionCode': divisionCode,
-    if (zoneCode != null) 'zoneCode': zoneCode,
-  };
+    final queryParams = {
+      if (trainStartDate != null) 'trainStartDate': trainStartDate,
+      if (journeyDate != null) 'trainJourneyDate': journeyDate,
+      if (trainNo != null) 'trainNo': trainNo,
+      if (divisionCode != null) 'divisionCode': divisionCode,
+      if (zoneCode != null) 'zoneCode': zoneCode,
+    };
 
-    final uri = Uri.parse('$_baseUrl/auth/eq/getAllSentRequests')
-        .replace(queryParameters: queryParams);
+    final uri = Uri.parse(
+      '$baseUrl/auth/eq/getAllSentRequests',
+    ).replace(queryParameters: queryParams);
 
     try {
       final token = await TokenStorage.getToken();
       final response = await http.get(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true) {
-          return List<Map<String, dynamic>>.from(jsonResponse['data']);
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          final eqList = jsonResponse['data']['eqRequestList'];
+          if (eqList != null && eqList is List) {
+            return List<Map<String, dynamic>>.from(eqList);
+          }
         } else {
           print("API Error: ${jsonResponse['message']}");
         }
@@ -169,15 +172,13 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
 
   /// Fetch Train List for Dropdown
   static Future<List<String>> fetchTrainList() async {
-    final url = Uri.parse('$_baseUrl/auth/basic/trains');
+    final url = Uri.parse('$baseUrl/auth/basic/trains');
 
     try {
       final token = await TokenStorage.getToken();
       final response = await http.get(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -202,12 +203,12 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
     return [];
   }
 
-    /// ✅ Load Divisions from API response
+  /// ✅ Load Divisions from API response
   static Future<List<Map<String, String>>> fetchDivisions({
     required String accessToken,
   }) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/auth/basic/divisions'),
+      Uri.parse('$baseUrl/auth/basic/divisions'),
       headers: {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
@@ -216,11 +217,13 @@ static Future<List<Map<String, dynamic>>> fetchSentRequestsByMR({
 
     final json = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && json['success'] == true && json['data'] != null) {
+    if (response.statusCode == 200 &&
+        json['success'] == true &&
+        json['data'] != null) {
       return (json['data'] as List).map<Map<String, String>>((item) {
         return {
-          'label': '${item['divisionName'] ?? ''}',
-          'value': '${item['divisionCode'] ?? ''}',
+          'label': '${item['divName'] ?? ''}',
+          'value': '${item['divCode'] ?? ''}',
         };
       }).toList();
     } else {
@@ -237,10 +240,7 @@ class AuthService {
       final json = jsonDecode(response.body);
       final captchaImage = base64Decode(json['data']['captchaImage']);
       final uuid = json['data']['uuid'];
-      return {
-        'captchaImage': captchaImage,
-        'uuid': uuid,
-      };
+      return {'captchaImage': captchaImage, 'uuid': uuid};
     } else {
       throw Exception("Failed to load captcha");
     }
@@ -252,11 +252,7 @@ class AuthService {
     required String uuid,
     required String captcha,
   }) async {
-    final body = {
-      "username": username,
-      "uuid": uuid,
-      "captcha": captcha,
-    };
+    final body = {"username": username, "uuid": uuid, "captcha": captcha};
     final response = await http.post(
       Uri.parse(AppConstants.otpEndpoint),
       headers: {"Content-Type": "application/json"},
@@ -272,29 +268,29 @@ class AuthService {
 
   /// Validates the OTP and captcha, returns accessToken on success.
   static Future<Map<String, dynamic>> validateOtp({
-   required String username,
-  required String otp,
-  required String uuid,
-  required String captcha,
-}) async {
-  final body = {
-    "username": username,
-    "otp": otp,
-    "uuid": uuid,
-    "captcha": captcha,
-  };
-  final response = await http.post(
-    Uri.parse(AppConstants.otpValidateEndpoint),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode(body),
-  );
-  final json = jsonDecode(response.body);
-  if (response.statusCode == 200 && json['success'] == true) {
-    return json; // Return the full response so you can access token and lists
-  } else {
-    throw Exception(json['message'] ?? "Login failed");
+    required String username,
+    required String otp,
+    required String uuid,
+    required String captcha,
+  }) async {
+    final body = {
+      "username": username,
+      "otp": otp,
+      "uuid": uuid,
+      "captcha": captcha,
+    };
+    final response = await http.post(
+      Uri.parse(AppConstants.otpValidateEndpoint),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+    final json = jsonDecode(response.body);
+    if (response.statusCode == 200 && json['success'] == true) {
+      return json; // Return the full response so you can access token and lists
+    } else {
+      throw Exception(json['message'] ?? "Login failed");
+    }
   }
-}
 }
 
 class QuotaService {
@@ -303,8 +299,9 @@ class QuotaService {
     required String accessToken,
     required String pnrNumber,
   }) async {
-    final uri = Uri.parse(AppConstants.pnrEnquiryEndpoint)
-        .replace(queryParameters: {'pnr': pnrNumber});
+    final uri = Uri.parse(
+      AppConstants.pnrEnquiryEndpoint,
+    ).replace(queryParameters: {'pnr': pnrNumber});
     final response = await http.get(
       uri,
       headers: {
@@ -351,6 +348,43 @@ class QuotaService {
       return data['message'] ?? 'Quota request submitted successfully!';
     } else {
       throw Exception(data['message'] ?? 'Failed to submit quota request.');
+    }
+  }
+
+  static Future<String?> fetchPassengerNameFromPnr({
+    required String accessToken,
+    required String pnrNumber,
+    required String currentStatus
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/auth/ru/external/pnrEnquiry',
+    );
+
+    try {
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['pnr'] = pnrNumber
+        ..fields['currentStatus'] = currentStatus
+        ..headers.addAll({'Authorization': 'Bearer $accessToken'});
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true &&
+            json['data'] != null &&
+            json['data']['passengerList'] != null &&
+            json['data']['passengerList'].isNotEmpty) {
+          return json['data']['passengerList'][0]['passengerName'];
+        } else {
+          throw Exception(json['message'] ?? 'No passenger data found');
+        }
+      } else {
+        throw Exception('HTTP Error ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in fetchPassengerNameFromPnr: $e');
+      return null;
     }
   }
 }

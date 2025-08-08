@@ -83,7 +83,7 @@ class TrainRequestCard extends StatelessWidget {
                       debugPrint("PNR clicked: ${request.pnr}");
                     },
                     child: TableCellText(
-                      "${request.pnr} (${formatDate(request.trainJourneyDate)})",
+                      "${request.pnr}\n(${formatDate(request.trainJourneyDate)})",
                       color: AColors.primary,
                       bold: true,
                     ),
@@ -95,13 +95,13 @@ class TrainRequestCard extends StatelessWidget {
               TableCellText(formatDate(request.trainStartDate)),
 
               // 3. Train No + Route
-              TableCellText("${request.trainNo} ( ${request.sourceStation} )"),
+              TableCellText("${request.trainNo}\n( ${request.sourceStation} )"),
 
               TableCellText(request.seatClass.toUpperCase()),
 
 
               // 4. Division + Zone
-              TableCellText("${request.division} (${request.zone})"),
+              TableCellText("${request.division}\n(${request.zone})"),
 
               // 5. Passenger Counts
               Row(
@@ -158,7 +158,7 @@ class TrainRequestCard extends StatelessWidget {
                     );
                   }
                 },
-                child: TableCellText("${request.requestedBy} (${request.eqRequestNo}) (${formatDateTime(request.requestedOn)})"),
+                child: TableCellText("${request.requestedBy} (${request.eqRequestNo})\n (${formatDateTime(request.requestedOn)})"),
               ),
 
 
@@ -228,7 +228,7 @@ class TrainRequestCard extends StatelessWidget {
         IconTextRow(
           icon: Icons.calendar_today,
           label: "",
-          value: "${AStrings.pnrLabel} ${request.pnr} (${formatDate(request.trainJourneyDate)})",
+          value: "${AStrings.pnrLabel} ${request.pnr}\n(${formatDate(request.trainJourneyDate)})",
           iconColor: AColors.gray,
         ),
         const SizedBox(height: 8),
@@ -261,7 +261,7 @@ class TrainRequestCard extends StatelessWidget {
           value: "${AStrings.reqByShort}${request.requestedBy} (${formatDateTime(request.requestedOn)})",
           iconColor: AColors.secondary,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 6, width: 20,),
         IconTextRow(
           icon: Icons.account_tree_outlined,
           label: AStrings.divZoneShort,

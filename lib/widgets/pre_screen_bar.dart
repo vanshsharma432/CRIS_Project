@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/colors.dart';
@@ -9,15 +10,16 @@ import '../providers/filter_provider.dart';
 
 class PreScreenBar extends StatefulWidget {
   final void Function({
-  required DateTime selectedDate,
-  required String dateType,
-  String? division,
-  String? zone,
-  String? mpInvolvement,
-  String? status,
-  String? trainNo,
-  List<Map<String, dynamic>>? apiData,
-  }) onSubmit;
+    required DateTime selectedDate,
+    required String dateType,
+    String? division,
+    String? zone,
+    String? mpInvolvement,
+    String? status,
+    String? trainNo,
+    List<Map<String, dynamic>>? apiData,
+  })
+  onSubmit;
 
   final VoidCallback? onRefresh;
   final VoidCallback? onPreviousPage;
@@ -80,13 +82,17 @@ class _PreScreenBarState extends State<PreScreenBar> {
     final picked = await showDatePicker(
       context: context,
       initialDate: currentDate ?? today,
-      firstDate: today.subtract(const Duration(days: 5)),
+      firstDate: today.subtract(const Duration(days: 10)),
       lastDate: today.add(const Duration(days: 120)),
     );
     if (picked != null) onDatePicked(picked);
   }
 
-  Widget _buildDateField(String label, DateTime? value, ValueChanged<DateTime> onPicked) {
+  Widget _buildDateField(
+    String label,
+    DateTime? value,
+    ValueChanged<DateTime> onPicked,
+  ) {
     return SizedBox(
       width: 150,
       child: InkWell(
@@ -96,10 +102,15 @@ class _PreScreenBarState extends State<PreScreenBar> {
             labelText: label,
             labelStyle: ATextStyles.bodyText,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
           child: Text(
-            value != null ? DateFormat('dd MMM yyyy').format(value) : AStrings.selectPrompt,
+            value != null
+                ? DateFormat('dd MMM yyyy').format(value)
+                : AStrings.selectPrompt,
             style: ATextStyles.bodyText,
           ),
         ),
@@ -114,7 +125,7 @@ class _PreScreenBarState extends State<PreScreenBar> {
     required ValueChanged<String?> onChanged,
   }) {
     return SizedBox(
-      width: 130,
+      width: 140,
       child: DropdownButtonFormField<String>(
         value: value,
         onChanged: onChanged,
@@ -122,44 +133,88 @@ class _PreScreenBarState extends State<PreScreenBar> {
           labelText: label,
           labelStyle: ATextStyles.bodyText,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
         ),
-        items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        items: options
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
       ),
     );
   }
 
   void _handleSubmit() async {
-    final selectedDate = journeyDate ?? startDate;
-    final selectedDateType = journeyDate != null ? AStrings.journeyDate : AStrings.trainStartDate;
+    final bool hasJourneyDate = journeyDate != null;
+    final bool hasStartDate = startDate != null;
 
-    if (selectedDate == null) {
+    final bool hasAtLeastOneFilter = [
+      selectedDivision,
+      selectedZone,
+      selectedMp,
+      selectedStatus,
+      selectedTrainNo,
+    ].any((val) => val != null && val.isNotEmpty);
+
+    if (hasJourneyDate && hasStartDate) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(".")),
+        const SnackBar(
+          content: Text(
+            "Please select only one: Journey Date or Train Start Date.",
+          ),
+        ),
       );
       return;
     }
 
-final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+    if (!hasJourneyDate && !hasStartDate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Please select either Journey Date or Train Start Date.",
+          ),
+        ),
+      );
+      return;
+    }
 
-final fetchedData = await MRApiService.fetchZoneRequests(
-  trainStartDate: selectedDateType == AStrings.trainStartDate ? formattedDate : null,
-  journeyDate: selectedDateType == AStrings.journeyDate ? formattedDate : null,
-  trainNo: selectedTrainNo,    // pass null if not selected
-  divisionCode: selectedDivision,  // pass null if not selected
-  zoneCode: selectedZone,      // pass null if not selected
-);
+    if (!hasAtLeastOneFilter) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Please select at least one filter: Division, Zone, User Type, Status, or Train No.",
+          ),
+        ),
+      );
+      return;
+    }
 
-  widget.onSubmit(
-    selectedDate: selectedDate,
-    dateType: selectedDateType,
-    division: selectedDivision,
-    zone: selectedZone,
-    mpInvolvement: selectedMp,
-    status: selectedStatus,
-    trainNo: selectedTrainNo,
-    apiData: fetchedData,
-  );
+    final journeyDateStr = journeyDate != null
+        ? DateFormat('yyyy-MM-dd').format(journeyDate!)
+        : null;
+    final startDateStr = startDate != null
+        ? DateFormat('yyyy-MM-dd').format(startDate!)
+        : null;
+
+    final fetchedData = await MRApiService.fetchZoneRequests(
+      trainStartDate: startDateStr,
+      journeyDate: journeyDateStr,
+      trainNo: selectedTrainNo,
+      divisionCode: selectedDivision,
+      zoneCode: selectedZone,
+    );
+
+    widget.onSubmit(
+      selectedDate: journeyDate ?? startDate!,
+      dateType: journeyDate != null ? 'journeyDate' : 'trainStartDate',
+      division: selectedDivision,
+      zone: selectedZone,
+      mpInvolvement: selectedMp,
+      status: selectedStatus,
+      trainNo: selectedTrainNo,
+      apiData: fetchedData,
+    );
   }
 
   void _handleRefresh() {
@@ -180,8 +235,12 @@ final fetchedData = await MRApiService.fetchZoneRequests(
   Widget build(BuildContext context) {
     final trainNoOptions = trainList;
     final filterProvider = Provider.of<FilterProvider>(context);
-    final List<String> divisions = filterProvider.divisionList.map((d) => d['divCode'] as String).toList();
-    final List<String> zones = filterProvider.zoneList.map((z) => z['zoneCode'] as String).toList();
+    final List<String> divisions = filterProvider.divisionList
+        .map((d) => d['divCode'] as String)
+        .toList();
+    final List<String> zones = filterProvider.zoneList
+        .map((z) => z['zoneCode'] as String)
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -198,7 +257,9 @@ final fetchedData = await MRApiService.fetchZoneRequests(
             alignment: Alignment.centerRight,
             child: IconButton(
               icon: Icon(
-                isCollapsed ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                isCollapsed
+                    ? Icons.keyboard_arrow_down
+                    : Icons.keyboard_arrow_up,
                 color: AColors.gray,
               ),
               onPressed: () => setState(() => isCollapsed = !isCollapsed),
@@ -216,13 +277,14 @@ final fetchedData = await MRApiService.fetchZoneRequests(
                     journeyDate = null;
                   });
                 }),
-                Text(AStrings.or, style: ATextStyles.bodyText),
                 _buildDateField(AStrings.journeyDate, journeyDate, (val) {
                   setState(() {
                     journeyDate = val;
                     startDate = null;
                   });
                 }),
+
+                Container(margin: EdgeInsetsDirectional.symmetric(horizontal: 4, vertical: 0),width: 1, height: 45, color: AColors.gray),
                 _buildDropdownField(
                   label: AStrings.division,
                   value: selectedDivision,
@@ -233,7 +295,6 @@ final fetchedData = await MRApiService.fetchZoneRequests(
                     });
                   },
                 ),
-                Text(AStrings.or, style: ATextStyles.bodyText),
                 _buildDropdownField(
                   label: AStrings.zone,
                   value: selectedZone,
@@ -244,7 +305,6 @@ final fetchedData = await MRApiService.fetchZoneRequests(
                     });
                   },
                 ),
-                Text(AStrings.or, style: ATextStyles.bodyText),
                 _buildDropdownField(
                   label: AStrings.userType,
                   value: selectedMp,
@@ -255,7 +315,6 @@ final fetchedData = await MRApiService.fetchZoneRequests(
                     });
                   },
                 ),
-                Text(AStrings.or, style: ATextStyles.bodyText),
                 _buildDropdownField(
                   label: AStrings.status,
                   value: selectedStatus,
@@ -266,32 +325,83 @@ final fetchedData = await MRApiService.fetchZoneRequests(
                     });
                   },
                 ),
-                Text(AStrings.or, style: ATextStyles.bodyText),
                 isLoadingTrainList
                     ? const CircularProgressIndicator()
-                    : _buildDropdownField(
-                  label: AStrings.trainNo,
-                  value: selectedTrainNo,
-                  options: trainNoOptions,
-                  onChanged: (val) => setState(() => selectedTrainNo = val),
-                ),
+                    : SizedBox(
+                        width: 150,
+                        child: DropdownSearch<String>(
+                          items: trainNoOptions, // e.g. ["12596", "12597"]
+                          selectedItem: selectedTrainNo,
+                          onChanged: (val) =>
+                              setState(() => selectedTrainNo = val),
+                          dropdownDecoratorProps: DropDownDecoratorProps(
+                            dropdownSearchDecoration: InputDecoration(
+                              labelText: AStrings.trainNo,
+                              labelStyle: ATextStyles.bodyText,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                          popupProps: PopupProps.menu(
+                            showSearchBox: true,
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search Train No',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                 ElevatedButton(
                   onPressed: _handleSubmit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: Text(AStrings.submit, style: ATextStyles.buttonText.copyWith(color: AColors.white)),
+                  child: Text(
+                    AStrings.submit,
+                    style: ATextStyles.buttonText.copyWith(
+                      color: AColors.white,
+                    ),
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _handleRefresh,
-                  icon: Icon(Icons.refresh, size: 20, color: AColors.brandeisBlue),
-                  label: Text("Refresh", style: ATextStyles.buttonText.copyWith(color: AColors.brandeisBlue)),
+                  icon: Icon(
+                    Icons.refresh,
+                    size: 20,
+                    color: AColors.brandeisBlue,
+                  ),
+                  label: Text(
+                    "Refresh",
+                    style: ATextStyles.buttonText.copyWith(
+                      color: AColors.brandeisBlue,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AColors.brandeisBlue),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ],
@@ -304,16 +414,20 @@ final fetchedData = await MRApiService.fetchZoneRequests(
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
-                  onPressed: widget.startIndex <= 0 ? null : widget.onPreviousPage,
+                  onPressed: widget.startIndex <= 0
+                      ? null
+                      : widget.onPreviousPage,
                   tooltip: 'Previous Page',
                 ),
                 Text(
-                  '‹ Showing ${widget.startIndex + 1}–${widget.endIndex} of ${widget.totalCount} ›',
+                  'Showing ${widget.startIndex + 1}–${widget.endIndex} of ${widget.totalCount}',
                   style: ATextStyles.bodySmall.copyWith(color: AColors.gray),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: widget.endIndex >= widget.totalCount ? null : widget.onNextPage,
+                  onPressed: widget.endIndex >= widget.totalCount
+                      ? null
+                      : widget.onNextPage,
                   tooltip: 'Next Page',
                 ),
               ],

@@ -4,6 +4,7 @@ import '../providers/filter_provider.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../constants/strings.dart';
+import 'package:intl/intl.dart';
 
 class FilterWidget extends StatelessWidget {
   const FilterWidget({super.key});
@@ -19,10 +20,11 @@ class FilterWidget extends StatelessWidget {
       childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       children: [
         // 🔽 Filter By label and dropdown vertically
-
         DropdownButton<String>(
           isExpanded: true,
-          value: selectedField != null && selectedField.isNotEmpty ? selectedField : null,
+          value: selectedField != null && selectedField.isNotEmpty
+              ? selectedField
+              : null,
           hint: Text(AStrings.selectFieldHint, style: ATextStyles.bodySmall),
           onChanged: (value) => provider.setSelectedField(value),
           items: provider.filterFields.map((field) {
@@ -33,9 +35,6 @@ class FilterWidget extends StatelessWidget {
           }).toList(),
         ),
 
-
-
-
         // 🔢 Conditional Inputs
         if (selectedField == AStrings.total ||
             selectedField == AStrings.requested ||
@@ -45,7 +44,9 @@ class FilterWidget extends StatelessWidget {
         if (selectedField == AStrings.currentStatus ||
             selectedField == AStrings.division ||
             selectedField == AStrings.zone ||
-            selectedField == AStrings.remarksByRailways)
+            selectedField == AStrings.remarksByRailways ||
+            selectedField == AStrings.seatClass ||
+            selectedField == AStrings.requestedByName)
           _buildTextSearchInput(context, provider),
 
         if (selectedField == AStrings.trainStartDate ||
@@ -94,7 +95,8 @@ class FilterWidget extends StatelessWidget {
             style: ATextStyles.bodySmall,
             keyboardType: TextInputType.number,
             onChanged: (value) {
-              final current = provider.filterValue as Map<String, String>? ?? {};
+              final current =
+                  provider.filterValue as Map<String, String>? ?? {};
               provider.setFilterValue({...current, 'min': value});
             },
           ),
@@ -109,7 +111,8 @@ class FilterWidget extends StatelessWidget {
             style: ATextStyles.bodySmall,
             keyboardType: TextInputType.number,
             onChanged: (value) {
-              final current = provider.filterValue as Map<String, String>? ?? {};
+              final current =
+                  provider.filterValue as Map<String, String>? ?? {};
               provider.setFilterValue({...current, 'max': value});
             },
           ),
@@ -136,7 +139,8 @@ class FilterWidget extends StatelessWidget {
             lastDate: DateTime(2035),
           );
           if (picked != null) {
-            provider.setFilterValue(picked);
+            final formattedDate = DateFormat('dd/MM/yyyy').format(picked);
+            provider.setFilterValue(formattedDate);
           }
         },
       ),
